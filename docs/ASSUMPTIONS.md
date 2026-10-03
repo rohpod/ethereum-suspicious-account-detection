@@ -21,3 +21,12 @@ Every value the paper does not specify, or any deviation from it, is logged here
 | z-score feature scope | Applied to all 47 features including the 2 encoded token columns | Paper specifies z-score normalization across all features before PSO | Section 4.2.2 |
 | constant columns retention | 7 zero-variance columns retained in feature matrix | StandardScaler safely scales zero-variance features (scale_=1) to 0.0 without NaNs; paper does not report dropping constant columns before PSO | Section 4.2.2 |
 | scaler fitting scope (Pipeline A) | Fitted on all 9,012 cleaned rows before splitting | Follows paper Algorithm 6 and Section 4.2 order where standardization precedes PSO, SMOTE, and data splitting | Section 4.2.2, Algorithm 6 |
+| SVM kernel | rbf | Table 1 mentions radial basis function (RBF) kernel gamma; kernel type otherwise unspecified in paper text | Table 1, Section 4.3 |
+| XGBoost objective | binary:logistic | Standard binary classification loss; specific loss function not named in text | not specified in paper |
+| XGBoost subsample | 1.0 | Subsample ratio mentioned in text but default value omitted from Table 5 | not specified in paper |
+| IF anomaly orientation | anomaly (-1) -> suspicious (1), inlier (+1) -> benign (0); unsupervised fit on X_train only | Isolation Forest is unsupervised; anomalies represent the positive/suspicious class | Section 4.3, Algorithm 5 |
+| IF risk score | -score_samples(X) (higher = more suspicious) | Scikit-learn score_samples produces negative values where lower indicates anomalies; negating aligns scores with suspiciousness for AUC-ROC | not specified in paper |
+| SVM risk score | decision_function(X) | Distance to separating hyperplane reflects confidence for class 1 (suspicious) without probability calibration overhead | not specified in paper |
+| MAE definition | MAE = 1 - accuracy on hard labels (mean \|y_true - y_pred\|) | Matches (FP + FN) / total on binary labels | Tables 8-9, Equation (12) |
+| positive class definition | Class 1 (suspicious) as positive class; per-class metrics also tracked | Standard fraud detection convention; macro and benign metrics also computed | not specified in paper |
+| model default hyperparameters | Explicit values from Tables 5-7: XGBoost (n_estimators=100, gamma=0, min_child_weight=1, colsample_bytree=1, max_depth=6, reg_lambda=1, learning_rate=0.3); SVM (C=0.1, gamma=0.1); IF (contamination=0.1, max_samples=256, n_estimators=100) | Paper baseline configurations explicitly pinned rather than relying on library defaults | Tables 5-7 |

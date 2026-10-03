@@ -19,3 +19,18 @@
   - Pipeline A implements the documented policy: drop rows with missing values in numeric feature columns.
   - This results in 9,012 cleaned rows (7,662 benign, 1,350 suspicious; 829 dropped).
   - The 22-row gap ($1,350 - 1,328 = 22$) remains documented as an unresolvable paper discrepancy.
+
+## Phase 1.3: Target Class Polarity in Reported Precision and Recall
+
+- **Context:**
+  - Tables 8-9 report "Precision" and "Recall" across all models.
+  - In `results/phase1_3_paper_confusion_check_20261003_213041.json`, mathematical evaluation confirms:
+    $$\text{Precision} = \frac{TP}{TP + FP}, \quad \text{Recall} = \frac{TP}{TP + FN}$$
+    where $TP + FP = 1,544$ for all six models.
+  - In Section 5, the paper states the test set contains **1,544 benign** and **1,521 suspicious** accounts.
+  - This indicates $TP + FP$ corresponds to the 1,544 benign accounts.
+- **Question:**
+  - Do the paper's reported "Precision" and "Recall" metrics actually track detection of the benign class (majority class) rather than the suspicious class?
+  - In standard anomaly/fraud detection literature, Precision and Recall evaluate the minority/suspicious class.
+  - We cannot confirm author intent, but the mathematical identity $TP + FP = 1,544$ strongly infers this orientation.
+  - For Pipeline A benchmark reporting, we will report both the paper-reproduced formula values and explicit per-class (suspicious vs benign) metrics in `src/evaluate.py`.
