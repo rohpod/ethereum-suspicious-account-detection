@@ -1,0 +1,328 @@
+{
+  "timestamp": "20261003_213041",
+  "config": {
+    "seed": 42,
+    "paths": {
+      "data_raw": "data/",
+      "results": "results/"
+    },
+    "data": {
+      "filename": "transaction_dataset.csv",
+      "label_column": "FLAG",
+      "suspicious_label": 1,
+      "id_columns": [
+        "Unnamed: 0",
+        "Index",
+        "Address"
+      ],
+      "categorical_columns": [
+        " ERC20 most sent token type",
+        " ERC20_most_rec_token_type"
+      ]
+    },
+    "cleaning": {
+      "policy": "drop_numeric_missing",
+      "deduplicate": false
+    },
+    "scaling": {
+      "method": "zscore"
+    },
+    "paper_reference": {
+      "rows": 9841,
+      "benign": 7663,
+      "suspicious": 2178,
+      "features_text": 49,
+      "features_table_a2": 45,
+      "cleaned_rows": 8990,
+      "cleaned_benign": 7662,
+      "cleaned_suspicious": 1328,
+      "dropped_rows": 851
+    },
+    "models": {
+      "xgboost": {
+        "objective": "binary:logistic",
+        "subsample": 1.0,
+        "defaults": {
+          "n_estimators": 100,
+          "gamma": 0.0,
+          "min_child_weight": 1,
+          "colsample_bytree": 1.0,
+          "max_depth": 6,
+          "reg_lambda": 1.0,
+          "learning_rate": 0.3
+        }
+      },
+      "svm": {
+        "kernel": "rbf",
+        "defaults": {
+          "C": 0.1,
+          "gamma": 0.1
+        }
+      },
+      "isolation_forest": {
+        "defaults": {
+          "contamination": 0.1,
+          "max_samples": 256,
+          "n_estimators": 100
+        }
+      }
+    },
+    "pso": {
+      "iterations": 50,
+      "inertia_decay": 0.99
+    },
+    "ga": {
+      "population": 50,
+      "generations": 20
+    },
+    "split": {
+      "test_size": 0.2
+    }
+  },
+  "paper_confusion_matrix_checks": {
+    "xgboost_default": {
+      "cells": {
+        "tp": 1498,
+        "fp": 46,
+        "tn": 1491,
+        "fn": 30
+      },
+      "total_n": 3065,
+      "reading_printed_rows": {
+        "tp_plus_fp": 1544,
+        "tn_plus_fn": 1521
+      },
+      "reading_actual_classes": {
+        "tp_plus_fn": 1528,
+        "fp_plus_tn": 1537
+      },
+      "computed_metrics": {
+        "accuracy": 0.9752039151712888,
+        "mae": 0.024796084828711255,
+        "precision": 0.9702072538860104,
+        "recall": 0.9803664921465969,
+        "f1": 0.9752604166666667
+      },
+      "reported_metrics": {
+        "accuracy": 0.975,
+        "mae": 0.03,
+        "precision": 0.97,
+        "recall": 0.98,
+        "f1": 0.975,
+        "auc": 0.97
+      },
+      "deltas": {
+        "accuracy": 0.00020391517128881542,
+        "mae": -0.0052039151712887435,
+        "precision": 0.00020725388601039452,
+        "recall": 0.00036649214659689733,
+        "f1": 0.0002604166666667629
+      }
+    },
+    "svm_default": {
+      "cells": {
+        "tp": 1275,
+        "fp": 269,
+        "tn": 1008,
+        "fn": 513
+      },
+      "total_n": 3065,
+      "reading_printed_rows": {
+        "tp_plus_fp": 1544,
+        "tn_plus_fn": 1521
+      },
+      "reading_actual_classes": {
+        "tp_plus_fn": 1788,
+        "fp_plus_tn": 1277
+      },
+      "computed_metrics": {
+        "accuracy": 0.7448613376835237,
+        "mae": 0.25513866231647636,
+        "precision": 0.8257772020725389,
+        "recall": 0.7130872483221476,
+        "f1": 0.7653061224489796
+      },
+      "reported_metrics": {
+        "accuracy": 0.744,
+        "mae": 0.26,
+        "precision": 0.826,
+        "recall": 0.713,
+        "f1": 0.765,
+        "auc": 0.71
+      },
+      "deltas": {
+        "accuracy": 0.0008613376835236997,
+        "mae": -0.004861337683523648,
+        "precision": -0.0002227979274610492,
+        "recall": 8.724832214768163e-05,
+        "f1": 0.00030612244897954
+      }
+    },
+    "if_default": {
+      "cells": {
+        "tp": 1130,
+        "fp": 414,
+        "tn": 997,
+        "fn": 524
+      },
+      "total_n": 3065,
+      "reading_printed_rows": {
+        "tp_plus_fp": 1544,
+        "tn_plus_fn": 1521
+      },
+      "reading_actual_classes": {
+        "tp_plus_fn": 1654,
+        "fp_plus_tn": 1411
+      },
+      "computed_metrics": {
+        "accuracy": 0.6939641109298532,
+        "mae": 0.30603588907014684,
+        "precision": 0.7318652849740933,
+        "recall": 0.6831922611850061,
+        "f1": 0.7066916823014385
+      },
+      "reported_metrics": {
+        "accuracy": 0.694,
+        "mae": 0.3,
+        "precision": 0.732,
+        "recall": 0.683,
+        "f1": 0.707,
+        "auc": 0.53
+      },
+      "deltas": {
+        "accuracy": -3.5889070146732927e-05,
+        "mae": 0.006035889070146849,
+        "precision": -0.00013471502590667317,
+        "recall": 0.0001922611850060374,
+        "f1": -0.0003083176985614333
+      }
+    },
+    "xgboost_ga": {
+      "cells": {
+        "tp": 1531,
+        "fp": 13,
+        "tn": 1510,
+        "fn": 11
+      },
+      "total_n": 3065,
+      "reading_printed_rows": {
+        "tp_plus_fp": 1544,
+        "tn_plus_fn": 1521
+      },
+      "reading_actual_classes": {
+        "tp_plus_fn": 1542,
+        "fp_plus_tn": 1523
+      },
+      "computed_metrics": {
+        "accuracy": 0.9921696574225123,
+        "mae": 0.007830342577487765,
+        "precision": 0.991580310880829,
+        "recall": 0.9928664072632944,
+        "f1": 0.9922229423201555
+      },
+      "reported_metrics": {
+        "accuracy": 0.992,
+        "mae": 0.01,
+        "precision": 0.992,
+        "recall": 0.993,
+        "f1": 0.992,
+        "auc": 0.99
+      },
+      "deltas": {
+        "accuracy": 0.00016965742251229265,
+        "mae": -0.0021696574225122355,
+        "precision": -0.00041968911917100726,
+        "recall": -0.0001335927367055456,
+        "f1": 0.00022294232015551696
+      }
+    },
+    "svm_ga": {
+      "cells": {
+        "tp": 1341,
+        "fp": 203,
+        "tn": 1325,
+        "fn": 196
+      },
+      "total_n": 3065,
+      "reading_printed_rows": {
+        "tp_plus_fp": 1544,
+        "tn_plus_fn": 1521
+      },
+      "reading_actual_classes": {
+        "tp_plus_fn": 1537,
+        "fp_plus_tn": 1528
+      },
+      "computed_metrics": {
+        "accuracy": 0.8698205546492659,
+        "mae": 0.13017944535073409,
+        "precision": 0.8685233160621761,
+        "recall": 0.8724788549121666,
+        "f1": 0.8704965920155794
+      },
+      "reported_metrics": {
+        "accuracy": 0.87,
+        "mae": 0.13,
+        "precision": 0.869,
+        "recall": 0.872,
+        "f1": 0.87,
+        "auc": 0.86
+      },
+      "deltas": {
+        "accuracy": -0.00017944535073410872,
+        "mae": 0.00017944535073408097,
+        "precision": -0.0004766839378238519,
+        "recall": 0.00047885491216659304,
+        "f1": 0.000496592015579389
+      }
+    },
+    "if_ga": {
+      "cells": {
+        "tp": 1273,
+        "fp": 271,
+        "tn": 1254,
+        "fn": 267
+      },
+      "total_n": 3065,
+      "reading_printed_rows": {
+        "tp_plus_fp": 1544,
+        "tn_plus_fn": 1521
+      },
+      "reading_actual_classes": {
+        "tp_plus_fn": 1540,
+        "fp_plus_tn": 1525
+      },
+      "computed_metrics": {
+        "accuracy": 0.8244698205546492,
+        "mae": 0.17553017944535074,
+        "precision": 0.8244818652849741,
+        "recall": 0.8266233766233766,
+        "f1": 0.8255512321660182
+      },
+      "reported_metrics": {
+        "accuracy": 0.824,
+        "mae": 0.18,
+        "precision": 0.824,
+        "recall": 0.827,
+        "f1": 0.825,
+        "auc": 0.79
+      },
+      "deltas": {
+        "accuracy": 0.00046982055464928063,
+        "mae": -0.004469820554649256,
+        "precision": 0.00048186528497418113,
+        "recall": -0.000376623376623364,
+        "f1": 0.0005512321660182673
+      }
+    }
+  },
+  "summary": {
+    "all_tp_plus_fp_equal_1544": true,
+    "all_tn_plus_fn_equal_1521": true,
+    "total_test_samples": 3065,
+    "explanation": "Under reading 1 (standard actual-class totals TP+FN and FP+TN), class counts fluctuate across models (e.g. suspicious totals range from 1528 to 1788). Under reading 2 (printed row totals TP+FP and TN+FN), sums are strictly invariant across all six models: TP+FP == 1544 and TN+FN == 1521 (total 3065). This proves the test set was identical (1544 benign, 1521 suspicious per Section 5), but the authors interpreted scikit-learn's confusion matrix [[TN, FP], [FN, TP]] as [[TP, FP], [FN, TN]], explaining the apparent test set inconsistency in Section 3 item 5."
+  },
+  "timings_seconds": {
+    "paper_layout_check": 1.9073486328125e-05,
+    "total": 0.001840829849243164
+  }
+}

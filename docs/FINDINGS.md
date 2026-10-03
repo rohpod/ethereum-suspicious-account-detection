@@ -42,3 +42,17 @@
   1. Section 3 Items 3 & 4 confirmed: Cleaning removes exclusively suspicious accounts (829 lost from suspicious, 0 from benign), confirming Item 3. The class count shift between raw (7,662/2,179) and post-cleaning (7,662/1,350) is driven entirely by suspicious account loss, confirming Item 4.
   2. Unexplained +22 suspicious gap: The paper reports 1,328 suspicious accounts after cleaning (851 dropped). The CSV has 1,350 suspicious accounts remaining after dropping all numeric NaNs, leaving an unexplained difference of 22 suspicious accounts.
   3. Paper claim of duplicate removal NOT confirmed: The paper claims duplicate addresses were removed in Section 4.1. However, 25 duplicate address pairs (50 rows, all benign) remain in the CSV; removing them would drop benign rows to 7,637, contradicting the paper's post-cleaning count of 7,662 benign accounts.
+
+## 2026-10-04: Phase 1.3 Confusion matrix audit and evaluation harness verification
+
+- **What:** Executed `python -m src.evaluate` analyzing the six paper confusion matrices from Tables 8-9 and Figures 9-14; output saved to `results/phase1_3_paper_confusion_check_20261003_213041.json`.
+- **Why:** Investigate Section 3 item 5 (apparent test-set class total discrepancy across models) and verify formula replication for accuracy, MAE, precision, recall, and F1.
+- **Number:**
+  - Total test samples: $N = 3,065$ across all six models.
+  - Printed row sums invariant: $TP + FP = 1,544$ and $TN + FN = 1,521$ across all six confusion matrices without exception.
+  - Formula precision: Equations 12-15 applied to the printed cells reproduce reported Accuracy, Precision, Recall, and F1 within $0.00086$ ($\le 0.002$ tolerance) across all six models.
+  - MAE alignment: Recomputed MAE matches reported values within $0.006$ (discrepancy explained entirely by the paper rounding MAE to 2 decimal places, e.g. $0.0248 \rightarrow 0.03$, $0.2551 \rightarrow 0.26$, $0.0078 \rightarrow 0.01$).
+  - Section 3 item 5 resolution: Under the standard reading (where $TP + FN$ represents actual positive accounts), positive totals appeared to fluctuate wildly between 1,528 and 1,788. Under the printed row reading, $TP + FP = 1,544$ and $TN + FN = 1,521$ are perfectly constant across all models.
+- **Surprise:**
+  1. Section 3 item 5 confirmed as explained by labelling, not an inconsistent test set: The test set was fixed ($1,544$ benign and $1,521$ suspicious, matching Section 5 text). The apparent contradiction arose because the authors interpreted scikit-learn's standard confusion matrix layout `[[TN, FP], [FN, TP]]` as `[[TP, FP], [FN, TN]]` (inferred from the cell identities and sums).
+  2. Reported "Precision" and "Recall" in Tables 8-9 mathematically track the benign class (1,544) under standard definitions, though presented as general detection performance.
