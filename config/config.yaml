@@ -1,0 +1,12 @@
+seed: 42            # assumption: not specified in paper
+paths:
+  data_raw: data/
+  results: results/
+pso:
+  iterations: 50    # paper 4.2.3
+  inertia_decay: 0.99
+ga:
+  population: 50    # paper 4.3
+  generations: 20
+split:
+  test_size: 0.2

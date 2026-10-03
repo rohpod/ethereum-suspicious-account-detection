@@ -1,0 +1,28 @@
+# secrets
+.env
+*.pem
+*.key
+
+# data and heavy artefacts
+data/*
+!data/.gitkeep
+*.csv.gz
+*.parquet
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# node / hardhat (Phase 4)
+node_modules/
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+
+# macOS
+.DS_Store
