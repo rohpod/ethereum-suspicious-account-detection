@@ -1,0 +1,193 @@
+{
+  "timestamp": "20261003_204929",
+  "config": {
+    "seed": 42,
+    "paths": {
+      "data_raw": "data/",
+      "results": "results/"
+    },
+    "data": {
+      "filename": "transaction_dataset.csv",
+      "label_column": "FLAG",
+      "suspicious_label": 1,
+      "id_columns": [
+        "Unnamed: 0",
+        "Index",
+        "Address"
+      ],
+      "categorical_columns": [
+        " ERC20 most sent token type",
+        " ERC20_most_rec_token_type"
+      ]
+    },
+    "paper_reference": {
+      "rows": 9841,
+      "benign": 7663,
+      "suspicious": 2178,
+      "features_text": 49,
+      "features_table_a2": 45
+    },
+    "pso": {
+      "iterations": 50,
+      "inertia_decay": 0.99
+    },
+    "ga": {
+      "population": 50,
+      "generations": 20
+    },
+    "split": {
+      "test_size": 0.2
+    }
+  },
+  "validation": {
+    "rows": 9841,
+    "class_counts": {
+      "0": 7662,
+      "1": 2179
+    },
+    "feature_count": 47,
+    "total_columns": 51,
+    "columns_minus_address_flag": 49,
+    "missing_cells": 22635,
+    "missing_rows": 2720,
+    "missing_columns": 25,
+    "per_column_missing": {
+      "total_erc20_tnxs": 829,
+      "erc20_total_ether_received": 829,
+      "erc20_total_ether_sent": 829,
+      "erc20_total_ether_sent_contract": 829,
+      "erc20_uniq_sent_addr": 829,
+      "erc20_uniq_rec_addr": 829,
+      "erc20_uniq_sent_addr_1": 829,
+      "erc20_uniq_rec_contract_addr": 829,
+      "erc20_avg_time_between_sent_tnx": 829,
+      "erc20_avg_time_between_rec_tnx": 829,
+      "erc20_avg_time_between_rec_2_tnx": 829,
+      "erc20_avg_time_between_contract_tnx": 829,
+      "erc20_min_val_rec": 829,
+      "erc20_max_val_rec": 829,
+      "erc20_avg_val_rec": 829,
+      "erc20_min_val_sent": 829,
+      "erc20_max_val_sent": 829,
+      "erc20_avg_val_sent": 829,
+      "erc20_min_val_sent_contract": 829,
+      "erc20_max_val_sent_contract": 829,
+      "erc20_avg_val_sent_contract": 829,
+      "erc20_uniq_sent_token_name": 829,
+      "erc20_uniq_rec_token_name": 829,
+      "erc20_most_sent_token_type": 2697,
+      "erc20_most_rec_token_type": 871
+    },
+    "rows_with_any_nan_by_class": {
+      "0": 1891,
+      "1": 829
+    },
+    "rows_with_nan_in_numeric_columns_only_by_class": {
+      "0": 0,
+      "1": 829
+    },
+    "whitespace_only_counts_in_token_columns": {
+      "erc20_most_sent_token_type": 1191,
+      "erc20_most_rec_token_type": 21
+    },
+    "constant_columns": [
+      "erc20_avg_time_between_sent_tnx",
+      "erc20_avg_time_between_rec_tnx",
+      "erc20_avg_time_between_rec_2_tnx",
+      "erc20_avg_time_between_contract_tnx",
+      "erc20_min_val_sent_contract",
+      "erc20_max_val_sent_contract",
+      "erc20_avg_val_sent_contract"
+    ],
+    "duplicate_address_count": 25,
+    "address_has_both_labels": false,
+    "duplicate_rows_over_features_and_label": 546,
+    "paper_comparison": {
+      "rows": {
+        "paper": 9841,
+        "actual": 9841,
+        "matches": true
+      },
+      "benign": {
+        "paper": 7663,
+        "actual": 7662,
+        "matches": false
+      },
+      "suspicious": {
+        "paper": 2178,
+        "actual": 2179,
+        "matches": false
+      },
+      "features_text": {
+        "paper": 49,
+        "actual": 47,
+        "matches": false
+      },
+      "features_table_a2": {
+        "paper": 45,
+        "actual": 47,
+        "matches": false
+      }
+    }
+  },
+  "column_mapping": {
+    "Unnamed: 0": "unnamed_0",
+    "Index": "index",
+    "Address": "address",
+    "FLAG": "flag",
+    "Avg min between sent tnx": "avg_min_between_sent_tnx",
+    "Avg min between received tnx": "avg_min_between_received_tnx",
+    "Time Diff between first and last (Mins)": "time_diff_between_first_and_last_mins",
+    "Sent tnx": "sent_tnx",
+    "Received Tnx": "received_tnx",
+    "Number of Created Contracts": "number_of_created_contracts",
+    "Unique Received From Addresses": "unique_received_from_addresses",
+    "Unique Sent To Addresses": "unique_sent_to_addresses",
+    "min value received": "min_value_received",
+    "max value received ": "max_value_received",
+    "avg val received": "avg_val_received",
+    "min val sent": "min_val_sent",
+    "max val sent": "max_val_sent",
+    "avg val sent": "avg_val_sent",
+    "min value sent to contract": "min_value_sent_to_contract",
+    "max val sent to contract": "max_val_sent_to_contract",
+    "avg value sent to contract": "avg_value_sent_to_contract",
+    "total transactions (including tnx to create contract": "total_transactions_including_tnx_to_create_contract",
+    "total Ether sent": "total_ether_sent",
+    "total ether received": "total_ether_received",
+    "total ether sent contracts": "total_ether_sent_contracts",
+    "total ether balance": "total_ether_balance",
+    " Total ERC20 tnxs": "total_erc20_tnxs",
+    " ERC20 total Ether received": "erc20_total_ether_received",
+    " ERC20 total ether sent": "erc20_total_ether_sent",
+    " ERC20 total Ether sent contract": "erc20_total_ether_sent_contract",
+    " ERC20 uniq sent addr": "erc20_uniq_sent_addr",
+    " ERC20 uniq rec addr": "erc20_uniq_rec_addr",
+    " ERC20 uniq sent addr.1": "erc20_uniq_sent_addr_1",
+    " ERC20 uniq rec contract addr": "erc20_uniq_rec_contract_addr",
+    " ERC20 avg time between sent tnx": "erc20_avg_time_between_sent_tnx",
+    " ERC20 avg time between rec tnx": "erc20_avg_time_between_rec_tnx",
+    " ERC20 avg time between rec 2 tnx": "erc20_avg_time_between_rec_2_tnx",
+    " ERC20 avg time between contract tnx": "erc20_avg_time_between_contract_tnx",
+    " ERC20 min val rec": "erc20_min_val_rec",
+    " ERC20 max val rec": "erc20_max_val_rec",
+    " ERC20 avg val rec": "erc20_avg_val_rec",
+    " ERC20 min val sent": "erc20_min_val_sent",
+    " ERC20 max val sent": "erc20_max_val_sent",
+    " ERC20 avg val sent": "erc20_avg_val_sent",
+    " ERC20 min val sent contract": "erc20_min_val_sent_contract",
+    " ERC20 max val sent contract": "erc20_max_val_sent_contract",
+    " ERC20 avg val sent contract": "erc20_avg_val_sent_contract",
+    " ERC20 uniq sent token name": "erc20_uniq_sent_token_name",
+    " ERC20 uniq rec token name": "erc20_uniq_rec_token_name",
+    " ERC20 most sent token type": "erc20_most_sent_token_type",
+    " ERC20_most_rec_token_type": "erc20_most_rec_token_type"
+  },
+  "timings_seconds": {
+    "load_raw": 0.02772688865661621,
+    "split_columns": 0.0029439926147460938,
+    "validate": 0.030865907669067383,
+    "token_frequency_encoder": 0.011523008346557617,
+    "total": 0.07409811019897461
+  }
+}
