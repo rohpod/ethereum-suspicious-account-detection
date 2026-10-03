@@ -1,5 +1,5 @@
 {
-  "timestamp": "20261003_203526",
+  "timestamp": "20261003_204929",
   "config": {
     "seed": 42,
     "paths": {
@@ -184,10 +184,10 @@
     " ERC20_most_rec_token_type": "erc20_most_rec_token_type"
   },
   "timings_seconds": {
-    "load_raw": 0.03133797645568848,
-    "split_columns": 0.0030291080474853516,
-    "validate": 0.0336301326751709,
-    "token_frequency_encoder": 0.011570930480957031,
-    "total": 0.08069396018981934
+    "load_raw": 0.02772688865661621,
+    "split_columns": 0.0029439926147460938,
+    "validate": 0.030865907669067383,
+    "token_frequency_encoder": 0.011523008346557617,
+    "total": 0.07409811019897461
   }
 }

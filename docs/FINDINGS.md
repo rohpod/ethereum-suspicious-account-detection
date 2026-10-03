@@ -4,7 +4,7 @@
 
 ## 2026-10-04: Phase 1.1 Data loading, feature audit, and paper replication validation
 
-- **What:** Executed `python -m src.data` loading `data/transaction_dataset.csv` with configuration in `config/config.yaml`; output saved to `results/phase1_1_data_validation_20261003_203426.json`.
+- **What:** Executed `python -m src.data` loading `data/transaction_dataset.csv` with configuration in `config/config.yaml`; output saved to `results/phase1_1_data_validation_20261003_204929.json`.
 - **Why:** Verify raw dataset properties against claims in El-Attar et al. (Cryptography 2025, 9, 63 Section 4.1 & Table A2) before implementing downstream cleaning and modeling.
 - **Number:**
   - Raw shape: 9,841 rows, 51 columns.
