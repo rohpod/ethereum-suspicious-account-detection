@@ -1,0 +1,196 @@
+{
+  "timestamp": "20261003_211147",
+  "config": {
+    "seed": 42,
+    "paths": {
+      "data_raw": "data/",
+      "results": "results/"
+    },
+    "data": {
+      "filename": "transaction_dataset.csv",
+      "label_column": "FLAG",
+      "suspicious_label": 1,
+      "id_columns": [
+        "Unnamed: 0",
+        "Index",
+        "Address"
+      ],
+      "categorical_columns": [
+        " ERC20 most sent token type",
+        " ERC20_most_rec_token_type"
+      ]
+    },
+    "cleaning": {
+      "policy": "drop_numeric_missing",
+      "deduplicate": false
+    },
+    "scaling": {
+      "method": "zscore"
+    },
+    "paper_reference": {
+      "rows": 9841,
+      "benign": 7663,
+      "suspicious": 2178,
+      "features_text": 49,
+      "features_table_a2": 45,
+      "cleaned_rows": 8990,
+      "cleaned_benign": 7662,
+      "cleaned_suspicious": 1328,
+      "dropped_rows": 851
+    },
+    "pso": {
+      "iterations": 50,
+      "inertia_decay": 0.99
+    },
+    "ga": {
+      "population": 50,
+      "generations": 20
+    },
+    "split": {
+      "test_size": 0.2
+    }
+  },
+  "cleaning": {
+    "rows_before": 9841,
+    "rows_after": 9012,
+    "class_counts_before": {
+      "0": 7662,
+      "1": 2179
+    },
+    "class_counts_after": {
+      "0": 7662,
+      "1": 1350
+    },
+    "dropped_rows_by_class": {
+      "1": 829,
+      "0": 0
+    },
+    "dropped_rows_total": 829,
+    "numeric_columns_with_nan": [
+      "total_erc20_tnxs",
+      "erc20_total_ether_received",
+      "erc20_total_ether_sent",
+      "erc20_total_ether_sent_contract",
+      "erc20_uniq_sent_addr",
+      "erc20_uniq_rec_addr",
+      "erc20_uniq_sent_addr_1",
+      "erc20_uniq_rec_contract_addr",
+      "erc20_avg_time_between_sent_tnx",
+      "erc20_avg_time_between_rec_tnx",
+      "erc20_avg_time_between_rec_2_tnx",
+      "erc20_avg_time_between_contract_tnx",
+      "erc20_min_val_rec",
+      "erc20_max_val_rec",
+      "erc20_avg_val_rec",
+      "erc20_min_val_sent",
+      "erc20_max_val_sent",
+      "erc20_avg_val_sent",
+      "erc20_min_val_sent_contract",
+      "erc20_max_val_sent_contract",
+      "erc20_avg_val_sent_contract",
+      "erc20_uniq_sent_token_name",
+      "erc20_uniq_rec_token_name"
+    ],
+    "is_all_or_nothing_missing": true,
+    "paper_comparison": {
+      "cleaned_rows": {
+        "paper": 8990,
+        "actual": 9012,
+        "matches": false,
+        "delta": 22
+      },
+      "cleaned_benign": {
+        "paper": 7662,
+        "actual": 7662,
+        "matches": true,
+        "delta": 0
+      },
+      "cleaned_suspicious": {
+        "paper": 1328,
+        "actual": 1350,
+        "matches": false,
+        "delta": 22
+      },
+      "dropped_rows": {
+        "paper": 851,
+        "actual": 829,
+        "matches": false,
+        "delta": -22
+      }
+    }
+  },
+  "constant_columns": [
+    "erc20_avg_time_between_sent_tnx",
+    "erc20_avg_time_between_rec_tnx",
+    "erc20_avg_time_between_rec_2_tnx",
+    "erc20_avg_time_between_contract_tnx",
+    "erc20_min_val_sent_contract",
+    "erc20_max_val_sent_contract",
+    "erc20_avg_val_sent_contract"
+  ],
+  "post_scaling_check": {
+    "max_abs_mean_non_constant": 1.3876555869260723e-16,
+    "min_std_non_constant": 0.9999999999999996,
+    "max_std_non_constant": 1.0000000000000007,
+    "constant_columns_all_zero": true
+  },
+  "timings_seconds": {
+    "load_raw": 0.03288078308105469,
+    "split_columns": 0.004498958587646484,
+    "clean_missing": 0.026706218719482422,
+    "token_frequency_encoder": 0.015820741653442383,
+    "fit_apply_scaler": 0.012764215469360352,
+    "total": 0.09421896934509277
+  },
+  "diagnostics": {
+    "policy_comparison": {
+      "drop_any_nan": {
+        "rows": 7121,
+        "benign": 5771,
+        "suspicious": 1350
+      },
+      "drop_numeric_nan": {
+        "rows": 9012,
+        "benign": 7662,
+        "suspicious": 1350
+      },
+      "drop_numeric_nan_plus_dup_feature_v1": {
+        "rows": 8746,
+        "benign": 7639,
+        "suspicious": 1107
+      },
+      "drop_numeric_nan_plus_dup_feature_v2": {
+        "rows": 8739,
+        "benign": 7632,
+        "suspicious": 1107
+      },
+      "drop_numeric_nan_plus_dup_address": {
+        "rows": 8987,
+        "benign": 7637,
+        "suspicious": 1350
+      }
+    },
+    "duplicates": {
+      "raw_data": {
+        "all_47_features": {
+          "1": 523,
+          "0": 23
+        },
+        "numeric_45_features": {
+          "1": 523,
+          "0": 30
+        }
+      },
+      "cleaned_data": {
+        "all_47_features": {
+          "1": 243,
+          "0": 23
+        },
+        "numeric_45_features": {
+          "1": 243,
+          "0": 30
+        }
+      }
+    }
+  }
+}
