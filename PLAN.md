@@ -134,30 +134,30 @@ PLAN.md
 ## 10. Phases
 
 ### Phase 1: As-is benchmark
-Goal: reproduce the paper and set the baseline. No improvements.
+Goal: reproduce the paper as written (Pipeline A only) and set the baseline. No improvements. No leakage-safe pipeline in this phase (that is Phase 2.0).
 
 - **1.1 Setup and data.** Skeleton, config, requirements, seeds. Download the dataset from the paper's URL. Assert 9,841 rows, 7,663 benign, 2,178 suspicious; count feature columns (paper: 49; Table A2: 45 plus Index/Address/Flag). Exclude Index, Address, Flag from inputs. Encode the two categorical token-type columns; log the method as an assumption. Report mismatches; do not adjust data to fit.
 - **1.2 Cleaning and scaling.** Drop rows with missing values (expect 851 rows, 8,990 left). Log class counts before and after (expect suspicious 2,178 -> 1,328). Remove duplicate/contradictory rows if any. Z-score.
-- **1.3 Default baselines.** Use the paper's stated defaults: XGBoost (Table 5 defaults), SVM (C 0.1, gamma 0.1), IF (contamination 0.1, max_samples 256, n_estimators 100).
-- **1.4 PSO.** Implement Algorithm 1 and Eq. 2-11, 50 iterations, alpha 0.99. Fitness as RMSE (as in the paper); log how positions map to a feature subset. Pipeline A runs it on the whole cleaned dataset; Pipeline B on training data only. Compare the subset with Table 2 (overlap, not equality); target size about 14.
-- **1.5 SMOTE and split (Pipeline A).** SMOTE on all data -> 15,324; 80/20 split -> 12,259 / 3,065. Check test counts near 1,544 / 1,521.
-- **1.6 GA.** Population 50, 20 generations, roulette selection, crossover, mutation (rates assumed and logged). Search spaces from Section 2. Log the GA logbook; compare best parameters with Tables 5-7.
-- **1.7 Pipeline B.** Same stages, leakage-safe as defined in Section 8.
-- **1.8 Comparison baselines.** LOF and CART (and default XGBoost) as in Table 10.
-- **1.9 Benchmark table and checks.** Paper vs A vs B, all three models, before and after GA. Run consistency checks. Optional leakage ladder: A -> SMOTE after split only -> full B, to show how much each leak contributes. Record everything not reproduced and why.
+- **1.3 Models and evaluation harness.** `models.py`: XGBoost (Table 5 defaults), SVM (C 0.1, gamma 0.1), IF (contamination 0.1, max_samples 256, n_estimators 100). `evaluate.py`: the fixed metrics and the consistency checks from Section 8. Test on small synthetic data; real default results are recorded in 1.5, after PSO, SMOTE and the split.
+- **1.4 PSO.** Implement Algorithm 1 and Eq. 2-11, 50 iterations, alpha 0.99. Fitness as RMSE (as in the paper); log how positions map to a feature subset. Run on the whole cleaned dataset (Pipeline A). `pso.py` must take X, y and config as arguments (no data loading inside) so Phase 2.0 can reuse it on training data only. Compare the subset with Table 2 (overlap, not equality); target size about 14.
+- **1.5 SMOTE, split and default baselines (Pipeline A).** SMOTE on all data -> 15,324; 80/20 split -> 12,259 / 3,065. Check test counts near 1,544 / 1,521. Then record the default-model results (XGBoost, SVM, IF) on this test set using the PSO-selected features.
+- **1.6 GA.** Population 50, 20 generations, roulette selection, crossover, mutation (rates assumed and logged). Search spaces from Section 2. `ga.py` takes data as arguments, like `pso.py`. Log the GA logbook; compare best parameters with Tables 5-7.
+- **1.7 Comparison baselines.** LOF and CART (and default XGBoost) as in Table 10.
+- **1.8 Benchmark table and checks.** Paper vs Pipeline A, all three models, before and after GA. Run consistency checks. Record everything not reproduced and why.
 
-Done when: table in `results/`, `FINDINGS.md` explains the A vs B gap and each inconsistency in Section 3 that was confirmed or not, tag `v1-baseline`.
+Done when: table in `results/` (paper vs A), `FINDINGS.md` marks each Section 3 inconsistency as confirmed, not confirmed, or needs Pipeline B (Phase 2), tag `v1-baseline`.
 
-### Phase 2: Speed and accuracy optimisation
-Goal: faster and better, measured against Phase 1 on Pipeline B.
+### Phase 2: Leakage-safe pipeline, speed and accuracy
+Goal: build the leakage-safe Pipeline B, then make the pipeline faster and better, measured against the Pipeline B baseline.
 
+- **2.0 Leakage-safe Pipeline B.** Implement `pipeline_b.py` as defined in Section 8: split first (stratified, natural class ratio), fit scaler, SMOTE, PSO and GA on training data only (inner stratified CV for PSO/GA fitness), test set used once. Reuse `pso.py` and `ga.py` from Phase 1. Run the leakage ladder: A -> SMOTE after split only -> full B. Record the Pipeline B baseline for all three models (default and GA) plus LOF and CART, with the majority-class baseline and per-class recall of the suspicious class. Report the A-vs-B gap and update `FINDINGS.md` with which Section 3 items it confirms.
 - **2.1 Profile.** Time each stage (GA = about 600 to 1,000 model fits per classifier; SVM scales poorly with sample count).
 - **2.2 Speed.** XGBoost `tree_method="hist"`, early stopping, parallel fitness evaluation, cheaper proxy model in the PSO fitness, caching repeated GA individuals, smaller budgets where metrics hold.
 - **2.3 Accuracy.** Class weights instead of SMOTE, threshold tuning on validation folds, optional LightGBM.
 - **2.4 Ablation.** Same-budget comparison: PSO+GA vs random search vs Optuna vs no feature selection. State plainly if PSO/GA do not win.
-- **2.5 Re-benchmark.** Same protocol; report speed-up (%) and metric deltas.
+- **2.5 Re-benchmark.** Same protocol on Pipeline B; report speed-up (%) and metric deltas against the 2.0 baseline.
 
-Done when: before/after table with timings, tag `v2-optimised`.
+Done when: A-vs-B table (with leakage ladder) and before/after optimisation table with timings, tag `v2-optimised`.
 
 ### Phase 3: Limitations
 Goal: address chosen weaknesses. Pick at most two or three; record choice and reason in `FINDINGS.md` first.

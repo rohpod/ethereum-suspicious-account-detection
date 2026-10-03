@@ -13,12 +13,21 @@ data:
   categorical_columns:
     - " ERC20 most sent token type"
     - " ERC20_most_rec_token_type"
+cleaning:
+  policy: drop_numeric_missing
+  deduplicate: false
+scaling:
+  method: zscore
 paper_reference:
   rows: 9841
   benign: 7663
   suspicious: 2178
   features_text: 49
   features_table_a2: 45
+  cleaned_rows: 8990
+  cleaned_benign: 7662
+  cleaned_suspicious: 1328
+  dropped_rows: 851
 pso:
   iterations: 50    # paper 4.2.3
   inertia_decay: 0.99

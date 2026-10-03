@@ -23,3 +23,22 @@
   1. Label distribution off-by-one: Paper Section 4.1 states 7,663 benign and 2,178 suspicious accounts. The raw dataset contains 7,662 benign and 2,179 suspicious accounts. Notably, paper Section 4.2.4 gives the post-cleaning benign count as 7,662, which exactly equals the raw CSV benign count.
   2. Missing data drops almost exclusively suspicious accounts: Dropping numeric ERC20 missing values removes 829 suspicious accounts and 0 benign accounts.
   3. Duplicate addresses exist in raw data: 25 address duplicates exist despite the paper's claim in Section 4.1 that duplicates were removed.
+
+## 2026-10-04: Phase 1.2 Cleaning and scaling (Pipeline A)
+
+- **What:** Executed `python -m src.preprocess` with config in `config/config.yaml`; output saved to `results/phase1_2_cleaning_scaling_20261003_211147.json`.
+- **Why:** Implement and verify data cleaning (dropping numeric NaNs) and z-score standardization according to paper Sections 4.2.1, 4.2.2, Figure 3, and Algorithm 6.
+- **Number:**
+  - Raw: 9,841 rows (7,662 benign, 2,179 suspicious).
+  - Cleaned: 9,012 rows (7,662 benign, 1,350 suspicious), dropping 829 rows.
+  - Target comparison: Benign count matches paper Section 4.2.4 (7,662) exactly ($\Delta = 0$). Cleaned suspicious count is 1,350 vs paper's 1,328 ($\Delta = +22$). Dropped rows count is 829 vs paper's 851 ($\Delta = -22$).
+  - Missingness structure: Exactly 829 rows dropped, all belonging to class 1 (suspicious). Missingness in the 23 numeric ERC20 features is all-or-nothing (every dropped row has all 23 numeric ERC20 columns NaN). Including the 2 token columns, this confirms the paper's count of "25 features" with missing data.
+  - Label proxy: Dropping numeric NaNs removes exclusively suspicious accounts (100% suspicious, 0% benign), confirming that missingness is heavily label-linked (critical context for Phase 3.1).
+  - Naive dropna impact: Naive `df.dropna()` drops 2,720 rows leaving only 7,121 rows (5,771 benign, 1,350 suspicious), erroneously removing 1,891 benign accounts due to missing token names.
+  - Duplicates: On raw data, duplicate feature vectors by class: all 47 features = 523 suspicious, 23 benign; numeric 45 features = 523 suspicious, 30 benign. On cleaned data: all 47 features = 243 suspicious, 23 benign; numeric 45 features = 243 suspicious, 30 benign (important note for Phase 2.0).
+  - Scaler check: 7 constant columns remain and scale cleanly to 0.0 with 0 NaNs (`scale_ = 1.0`). Non-constant columns: max $|mean| = 1.39 \times 10^{-16}$, min std $= 1.0$, max std $= 1.0$.
+  - Pipeline runtime: 0.094s total (load 0.033s, split 0.004s, clean 0.027s, encode 0.016s, scale 0.013s).
+- **Surprise:**
+  1. Section 3 Items 3 & 4 confirmed: Cleaning removes exclusively suspicious accounts (829 lost from suspicious, 0 from benign), confirming Item 3. The class count shift between raw (7,662/2,179) and post-cleaning (7,662/1,350) is driven entirely by suspicious account loss, confirming Item 4.
+  2. Unexplained +22 suspicious gap: The paper reports 1,328 suspicious accounts after cleaning (851 dropped). The CSV has 1,350 suspicious accounts remaining after dropping all numeric NaNs, leaving an unexplained difference of 22 suspicious accounts.
+  3. Paper claim of duplicate removal NOT confirmed: The paper claims duplicate addresses were removed in Section 4.1. However, 25 duplicate address pairs (50 rows, all benign) remain in the CSV; removing them would drop benign rows to 7,637, contradicting the paper's post-cleaning count of 7,662 benign accounts.
