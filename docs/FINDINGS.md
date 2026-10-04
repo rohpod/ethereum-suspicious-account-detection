@@ -235,3 +235,98 @@
   - Hardcoded literal in `src/benchmark.py` (expected_n_test 3065).
   - Hardcoded literals in `src/pso.py` (paper_reported_rmse, paper_feature_count in the summary payload).
   - To move to config when those files are next touched.
+
+## 2026-10-04: Phase 2.0b Leakage ladder rungs L1 and B (default models and baselines)
+
+- **What:** Executed `python -m src.pipeline_b` evaluating default XGBoost, SVM, Isolation Forest, CART, and LOF on ladder rungs L1 ("SMOTE after split only") and B (full leakage-safe: stratified split first, TokenFrequencyEncoder and scaler fit on train only, PSO with fold-wise SMOTE on train only, test set natural). Output saved to `results/phase2_0b_pipeline_b_ladder_20261004_161846.json`.
+- **Why:** Evaluate the impact of SMOTE leakage and preprocessing leakage by isolating them across ladder rungs L1 and B on natural test distributions, establishing rigorous leakage-free baselines for all models before GA tuning.
+- **Number:**
+  - Test set: 1,803 samples (1,533 benign, 270 suspicious; 0 synthetic rows, 0.00% contamination). Matches cleaned natural class ratio within 1 sample (expected 270.09 vs actual 270).
+  - Majority baseline: Always-benign accuracy = 0.8502 (85.02%), suspicious recall = 0.0000.
+  - Rung L1 Performance (SMOTE after split only; leaky TokenFrequencyEncoder & scaling):
+    - XGBoost: Accuracy = 0.9945, Precision = 0.9745, Recall = 0.9889 (267/270), F1 = 0.9816, ROC-AUC = 0.9998, PR-AUC = 0.9988, MCC = 0.9784.
+    - SVM: Accuracy = 0.9218, Precision = 0.6667, Recall = 0.9556 (258/270), F1 = 0.7854, ROC-AUC = 0.9530, PR-AUC = 0.6153, MCC = 0.7573.
+    - Isolation Forest: Accuracy = 0.7349, Precision = 0.0517, Recall = 0.0444 (12/270), F1 = 0.0478, ROC-AUC = 0.1499, PR-AUC = 0.0904, MCC = -0.1056.
+    - CART: Accuracy = 0.9806, Precision = 0.9038, Recall = 0.9741 (263/270), F1 = 0.9376, ROC-AUC = 0.9779, PR-AUC = 0.8842, MCC = 0.9270.
+    - LOF: Accuracy = 0.6916, Precision = 0.1478, Recall = 0.2222 (60/270), F1 = 0.1775, ROC-AUC = 0.5411, PR-AUC = 0.1742, MCC = -0.0030.
+  - Rung B Performance (Full leakage-safe):
+    - XGBoost: Accuracy = 0.9945, Precision = 0.9815, Recall = 0.9815 (265/270), F1 = 0.9815, ROC-AUC = 0.9997, PR-AUC = 0.9986, MCC = 0.9782.
+    - SVM: Accuracy = 0.9196, Precision = 0.6607, Recall = 0.9519 (257/270), F1 = 0.7800, ROC-AUC = 0.9523, PR-AUC = 0.6112, MCC = 0.7510.
+    - Isolation Forest: Accuracy = 0.7399, Precision = 0.0538, Recall = 0.0444 (12/270), F1 = 0.0487, ROC-AUC = 0.1356, PR-AUC = 0.0894, MCC = -0.1010.
+    - CART: Accuracy = 0.9828, Precision = 0.9193, Recall = 0.9704 (262/270), F1 = 0.9441, ROC-AUC = 0.9777, PR-AUC = 0.8965, MCC = 0.9345.
+    - LOF: Accuracy = 0.7022, Precision = 0.1550, Recall = 0.2222 (60/270), F1 = 0.1826, ROC-AUC = 0.5501, PR-AUC = 0.1831, MCC = +0.0077.
+  - PSO feature selection on train split (Rung B): selected 22 features, best RMSE = 0.0886 (cached to `results/cache/pso_pipeline_b.json`).
+- **Surprise:**
+  1. XGBoost performance delta between Pipeline A (0.9967) and Rung B (0.9945) corresponds to just 2 additional errors in the natural test set of 1,803 samples; that the difference is within noise cannot be excluded.
+  2. Tree models (XGBoost F1 0.9815, CART F1 0.9441) generalize well to natural test data without synthetic balance, far exceeding the 85.02% majority baseline.
+  3. Unsupervised methods perform poorly on natural class ratios: Isolation Forest test accuracy (0.7399) is below the 85.02% majority baseline; its ROC-AUC (0.1356) below 0.5 indicates inverted ranking of anomaly scores. LOF accuracy (0.7022) is also well below majority baseline (ROC-AUC 0.5501).
+
+## 2026-10-04: Phase 2.0c Duplicate and train/test leakage diagnostic
+
+- **What:** Executed `python -m src.diagnostics --duplicates` auditing the unscaled 47-feature cleaned matrix; output saved to `results/phase2_0c_duplicates_20261004_163639.json`.
+- **Why:** Investigate whether duplicate feature rows or train/test feature overlap explain model performance, and evaluate whether default XGBoost retains high performance on strictly unseen test accounts.
+- **Number:**
+  - Duplicate rows overall (`keep='first'`): 266 redundant rows (2.95% of 9,012 cleaned accounts), comprising 23 benign and 243 suspicious accounts.
+  - Duplicate cluster rows (`keep=False`): 292 rows (3.24%), comprising 44 benign and 248 suspicious accounts.
+  - Contradictory groups (identical feature vector, different label): Exactly 0 groups (0 rows).
+  - Train/test overlap: Exactly 57 test rows (3.16% of 1,803 test samples) have an identical feature vector in the training split (9 benign, 48 suspicious).
+  - Strictly unseen test accounts: 1,746 accounts (96.84% of test set), consisting of 1,524 benign and 222 suspicious accounts.
+  - Majority baseline on unseen subset: 0.8729 (87.29%).
+  - XGBoost performance on unseen test rows: Accuracy = 0.9943 (vs 0.9945 full, $\Delta = -0.0002$), Precision = 0.9775 (vs 0.9815 full, $\Delta = -0.0040$), Recall = 0.9775 (vs 0.9815 full, $\Delta = -0.0040$), F1 = 0.9775 (vs 0.9815 full, $\Delta = -0.0040$), ROC-AUC = 0.9997 (vs 0.9997 full, $\Delta = -0.00006$), PR-AUC = 0.9980 (vs 0.9986 full, $\Delta = -0.0006$), MCC = 0.9742 (vs 0.9782 full, $\Delta = -0.0040$). Confusion matrix: `[[1519, 5], [5, 217]]` (10 errors total across 1,746 unseen accounts).
+- **Surprise:**
+  1. Complete absence of label contradictions: Exactly 0 contradictory groups exist among all duplicate feature vectors in the dataset.
+  2. High test performance is not driven by train/test duplicate overlap: Filtering out the 57 overlapping samples leaves XGBoost accuracy virtually unchanged (0.9943 on 1,746 unseen accounts vs 0.9945 on the full test set; that the delta of -0.0002 is within noise cannot be excluded).
+
+## 2026-10-04: Phase 2.0c Genetic Algorithm hyperparameter tuning (Rungs L1 and B)
+
+- **What:** Executed GA hyperparameter optimization across ladder rungs: XGBoost Rung B (`results/phase2_0c_ga_b_xgboost_20261004_164208.json`), XGBoost Rung L1 (`results/phase2_0c_ga_l1_xgboost_20261004_164511.json`), Isolation Forest Rung B (`results/phase2_0c_ga_b_isolation_forest_20261004_165411.json`), and SVM Rung B (`results/phase2_0c_ga_b_svm_20261004_171516.json`).
+- **Why:** Evaluate GA hyperparameter optimization under leakage-safe conditions (Rung B: inner 3-fold CV with fold-wise SMOTE, optimizing `f1_suspicious`) vs Rung L1 (pre-CV SMOTE), and examine tuning estimates vs test set generalization.
+- **Number:**
+  - XGBoost Rung B GA:
+    - 663 evals, 319.90s (5.33 min).
+    - Best inner-CV fitness (`f1_suspicious`): 0.9710.
+    - Test metrics: Accuracy = 0.9911, Precision = 0.9635, Recall = 0.9778 (264/270), F1 = 0.9706, ROC-AUC = 0.9997, PR-AUC = 0.9986, MCC = 0.9654.
+    - Tuning delta (Test F1 - CV F1): $0.9706 - 0.9710 = -0.0004$.
+    - Best parameters: `n_estimators: 300`, `gamma: 0.0`, `min_child_weight: 5.1844`, `colsample_bytree: 0.7517`, `max_depth: 7`, `reg_lambda: 8.9637`, `learning_rate: 0.8657`. Search-space bounds: `n_estimators` pinned to upper bound 300, `gamma` pinned to lower bound 0.0.
+  - XGBoost Rung L1 GA:
+    - 663 evals, 172.53s (2.88 min).
+    - Best inner-CV fitness (`f1_suspicious`): 0.9951.
+    - Test metrics: Accuracy = 0.9928, Precision = 0.9639, Recall = 0.9889 (267/270), F1 = 0.9762, ROC-AUC = 0.9998, PR-AUC = 0.9991, MCC = 0.9721.
+    - Tuning delta (Test F1 - CV F1): $0.9762 - 0.9951 = -0.0189$.
+    - Best parameters: `n_estimators: 103`, `gamma: 0.0`, `min_child_weight: 1.0`, `colsample_bytree: 0.6383`, `max_depth: 6`, `reg_lambda: 5.1412`, `learning_rate: 0.8942`. Search-space bounds: `min_child_weight` (1.0) and `gamma` (0.0) pinned to lower bounds.
+  - SVM Rung B GA:
+    - 629 evals, 1253.88s (20.90 min).
+    - Best inner-CV fitness (`f1_suspicious`): 0.9243.
+    - Test metrics: Accuracy = 0.9795 (vs default 0.9196, $\Delta = +0.0599$), Precision = 0.8896 (vs default 0.6607, $\Delta = +0.2289$), Recall = 0.9852 (266/270; vs default 0.9519, $\Delta = +0.0333$), F1 = 0.9350 (vs default 0.7800, $\Delta = +0.1550$), ROC-AUC = 0.9983 (vs default 0.9523, $\Delta = +0.0460$), PR-AUC = 0.9904 (vs default 0.6112, $\Delta = +0.3792$), MCC = 0.9245 (vs default 0.7510, $\Delta = +0.1735$).
+    - Tuning delta (Test F1 - CV F1): $0.9350 - 0.9243 = +0.0107$.
+    - Best parameters: `C: 76.6149`, `gamma: 5.0378`.
+  - Isolation Forest Rung B GA:
+    - 637 evals, 531.72s (8.86 min).
+    - Best inner-CV fitness (`f1_suspicious`): 0.1314.
+    - Test metrics: Accuracy = 0.3172 (vs default 0.7399), Precision = 0.0620, Recall = 0.2519 (68/270; vs default 0.0444), F1 = 0.0995, ROC-AUC = 0.1957, PR-AUC = 0.0920, MCC = -0.3066.
+    - Tuning delta (Test F1 - CV F1): $0.0995 - 0.1314 = -0.0319$.
+    - Best parameters: `contamination: 0.4979`, `max_samples: 64`, `n_estimators: 145`. Search-space bounds: `contamination` pinned to search ceiling 0.4979, `max_samples` pinned to lower bound 64.
+- **Surprise:**
+  1. Optimistic tuning estimate in L1 vs faithful estimate in B: In Rung L1, pre-CV SMOTE creates an optimistic tuning estimate where inner-CV F1 reaches 0.9951 while test F1 is 0.9762 ($\Delta = -0.0189$). In Rung B, fold-wise SMOTE produces an estimate matching test generalization: inner-CV F1 is 0.9710 while test F1 is 0.9706 ($\Delta = -0.0004$).
+  2. XGBoost parameter bounds: In Rung B, `n_estimators` reaches the upper bound (300) and `gamma` sits at the lower bound (0.0). In Rung L1, `min_child_weight` (1.0) and `gamma` (0.0) sit at lower bounds.
+  3. Large SVM GA gain: GA tuning yields substantial gains for SVM, lifting test accuracy from 0.9196 to 0.9795, F1 from 0.7800 to 0.9350, and PR-AUC from 0.6112 to 0.9904, correctly identifying 266 of 270 suspicious accounts with 33 false positives.
+  4. Isolation Forest contamination pinned to ceiling: Optimizing unsupervised IF for `f1_suspicious` pushes contamination to the search ceiling (0.4979). Because ROC-AUC (0.1957) is below 0.5, indicating an inverted ranking of anomaly scores relative to suspicious labels, predicting more anomalies flags 1,029 false positives and causes test accuracy to drop to 0.3172 (far below the 0.8502 baseline).
+
+## Paper inconsistencies status
+
+Audit of all 13 paper inconsistencies from PLAN.md Section 3 assessed against findings through Phase 2.0:
+
+1. **SMOTE contradiction (Section 5 says SMOTE on training folds only, but counts 15,324 and 12,259/3,065 split imply SMOTE before split):** **Confirmed.** Published dataset counts (15,324 total; 12,259 train / 3,065 test) are replicated exactly ($\Delta = 0$) when SMOTE precedes the split (contaminating Pipeline A test data with 40.62% synthetic accounts), whereas fold-wise SMOTE in Pipeline B produces 1,803 natural test accounts.
+2. **Leakage order (Scaling, PSO on whole dataset, and SMOTE all precede split):** **Confirmed.** Published Algorithm 6 steps leak test distribution into scaling, PSO, and SMOTE; isolating them to training data in Pipeline B yields default XGBoost accuracy 0.9945 vs Pipeline A's 0.9967, where that the difference is within noise cannot be excluded.
+3. **Cleaning removes mostly suspicious accounts (2,178 -> 1,328 suspicious vs 7,663 -> 7,662 benign):** **Confirmed.** Dropping numeric NaNs across ERC20 features removes 829 suspicious accounts and 0 benign accounts, demonstrating that missingness in the tabular dataset is label-linked.
+4. **Class counts differ between 4.1 (7,663/2,178) and 4.2.4 (7,662/1,328):** **Confirmed.** Section 4.2.4 represents post-cleaning counts; raw CSV has 7,662/2,179, and cleaning produces 7,662/1,350 (leaving an unexplained 22-suspicious-account gap with the paper's 1,328).
+5. **Confusion-matrix labels (TP+FN sum fluctuations across models):** **Confirmed.** All six paper confusion matrices exhibit invariant row totals ($TP+FP = 1,544$ and $TN+FN = 1,521$), confirming the test set was constant and authors inverted scikit-learn's confusion matrix indexing (`[[TN, FP], [FN, TP]]` interpreted as `[[TP, FP], [FN, TN]]`).
+6. **Figures 13/14 text swapped (IF before/after GA descriptions):** **Confirmed.** Figure 13 caption reads "before GA" while its narrative text describes "after GA", and Figure 14 caption reads "after GA" while its narrative text describes "before GA".
+7. **Fitness metrics unclear (PSO RMSE 0.3443 vs GA fitness 0.878->0.918 in Table 4, typos in Table 4):** **Confirmed.** Table 4 GA fitness progression (0.878 -> 0.918) matches none of the models (XGBoost 0.971/0.995, SVM 0.924/0.986, IF 0.131/0.495), and generational summary statistics contain printed typos (Gen 6 min 0.982 > avg 0.898; Gen 13 std 0.1524).
+8. **Feature count (Text says 49; Table A2 lists 45 features; raw data has 47 candidate features):** **Confirmed.** Raw dataset contains 51 total columns (47 feature candidates, 3 identifier columns, 1 label); Table A2 lists 45 features plus 3 identifiers; paper narrative text reports 49 features.
+9. **IF is unsupervised but tuned with supervised accuracy:** **Confirmed.** Tuning unsupervised Isolation Forest with supervised metrics drives hyperparameters to search bounds (contamination at ceiling 0.4979), while ROC-AUC below 0.5 (0.1356 default, 0.1957 GA) indicates inverted ranking of anomaly scores relative to suspicious labels.
+10. **GA budget (Text says 1,000 evals; Table 4 shows 616 evals):** **Confirmed.** Table 4 generation evals sum to 616, consistent with `eaSimple` evaluating only modified offspring (~625-663 evals) rather than a fixed grid of 1,000 evaluations.
+11. **Table 10 baselines (Match paper's default XGBoost [0.975]; std of accuracy 0.109 unexplained):** **Confirmed.** Table 10 Alarab et al. XGBoost numbers reproduce Table 8 default XGBoost exactly, while reported CART and LOF accuracy/MAE pairs violate arithmetic consistency ($1 - \text{Acc} \ne \text{MAE}$).
+12. **"50 million transactions" vs 9,841 account-level rows:** **Not testable.** The provided dataset consists strictly of 9,841 aggregated account-level feature vectors; raw transaction-level blockchain logs were not released.
+13. **Unspecified hyperparameters and procedures:** **Confirmed.** Critical implementation details (PSO coefficients, swarm size, discretization threshold, GA mutation/crossover probabilities, SMOTE neighbors, categorical token encoding) were unspecified in the paper and required explicit baseline assumptions documented in `docs/ASSUMPTIONS.md`.
+
