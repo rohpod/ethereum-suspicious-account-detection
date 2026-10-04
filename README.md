@@ -21,6 +21,17 @@ Test accuracy shown on the 22 PSO-selected features. Source: `results/phase1_8_b
 - **Data leakage / synthetic contamination:** Under the paper's literal pipeline order (SMOTE applied to the entire dataset before splitting), the Pipeline A test set contains 1,245 synthetic accounts out of 3,065 total test accounts (**40.62% synthetic rows**).
 - **Below-chance anomaly detection:** Isolation Forest achieves test accuracy of 0.4395 (default) and 0.4897 (GA), which is below chance; its ROC-AUC is well below 0.5 (0.1869 default, 0.2289 GA), indicating an inverted anomaly ranking on this feature distribution.
 
+### Replication caveats
+
+Pipeline A is a best-effort replication, not an exact one. Numbers differ from the paper for reasons we could only partly isolate:
+
+- **Dataset:** the data we used `[state exactly what differs: rows / columns / class counts, from results/phase1_1_*.json]` compared with the paper's description (9,841 accounts; 49 features). We could not obtain anything closer.
+- **Feature subset:** our PSO selected 22 features, not the paper's 14 (Table 2). The paper does not specify swarm size, c1, c2, SEG, or how continuous positions map to a feature subset, so these are our choices (see `docs/ASSUMPTIONS.md`).
+- **Other unspecified settings:** GA crossover/mutation rates, SMOTE settings, SVM kernel, XGBoost subsample, categorical encoding and seeds are also assumptions.
+- **Pipeline order:** following the paper's numbers, SMOTE runs before the split, so 40.62% of the Pipeline A test set is synthetic. This likely inflates our scores, and the paper's own scores, relative to a leakage-safe evaluation (Pipeline B, not yet run).
+
+Absolute scores should not be compared directly with the paper due to these differences. See `docs/FINDINGS.md` for the full list of inconsistencies.
+
 ## Setup
 
 Requires Python 3.14

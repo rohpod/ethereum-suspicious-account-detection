@@ -79,6 +79,7 @@ pso:
     model: decision_tree
     cv_folds: 3
     metric: rmse_hard_labels
+    smote_in_fold: false
   use_cache: true
   table2_columns:
     - avg_min_between_received_tnx
@@ -131,6 +132,7 @@ ga:
   blend_alpha: 0.5      # assumption: cxBlend alpha parameter
   cv_folds: 3           # assumption: 3-fold stratified CV on train split
   metric: "accuracy"    # paper 4.3
+  smote_in_fold: false
   use_cache: true
   search_spaces:
     xgboost:

@@ -31,6 +31,7 @@ function, allowing re-use on training folds in Phase 2.0 (Pipeline B).
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import time
@@ -40,6 +41,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import yaml
+from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import StratifiedKFold
 from sklearn.tree import DecisionTreeClassifier
 
@@ -51,6 +53,49 @@ from src.data import (
 )
 from src.evaluate import write_results
 from src.preprocess import apply_scaler, clean_missing, fit_scaler
+
+
+def hash_index(idx: Any) -> str:
+    """Compute deterministic SHA-256 hash of sorted index values.
+
+    Args:
+        idx: Iterable index (e.g., pd.Index, np.ndarray, list).
+
+    Returns:
+        Hexadecimal SHA-256 digest string.
+    """
+    sorted_vals = sorted(list(idx))
+    payload = json.dumps([str(v) for v in sorted_vals]).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def apply_fold_smote(
+    X_tr: np.ndarray,
+    y_tr: np.ndarray,
+    k_neighbors: int,
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Apply SMOTE to training fold with small-minority guard.
+
+    Guard: if minority count <= k_neighbors, reduce k to minority_count - 1;
+    if minority_count < 2, skip SMOTE for that fold. Log nothing noisy.
+    """
+    y_arr = np.asarray(y_tr, dtype=int)
+    classes, counts = np.unique(y_arr, return_counts=True)
+    if len(classes) < 2:
+        return X_tr, y_tr
+
+    minority_count = int(np.min(counts))
+    if minority_count < 2:
+        return X_tr, y_tr
+
+    k = k_neighbors
+    if minority_count <= k:
+        k = minority_count - 1
+
+    smote = SMOTE(k_neighbors=k, random_state=seed)
+    X_res, y_res = smote.fit_resample(X_tr, y_tr)
+    return np.asarray(X_res, dtype=float), np.asarray(y_res, dtype=int)
 
 
 def pso_update_particle(
@@ -106,7 +151,10 @@ class RMSEFitness:
             pso_cfg.get("empty_subset_fitness", 1.0)
         )
         self.cv_folds = int(fitness_cfg.get("cv_folds", 3))
+        self.smote_in_fold = bool(fitness_cfg.get("smote_in_fold", False))
         self.seed = int(cfg.get("seed", 42))
+        smote_cfg = cfg.get("smote", {})
+        self.k_neighbors = int(smote_cfg.get("k_neighbors", 5))
 
         self.X_arr = np.asarray(X, dtype=float)
         self.y_arr = np.asarray(y, dtype=int)
@@ -136,8 +184,16 @@ class RMSEFitness:
         fold_rmses: list[float] = []
 
         for train_idx, val_idx in self.splits:
+            X_fold_tr = self.X_arr[train_idx][:, col_indices]
+            y_fold_tr = self.y_arr[train_idx]
+
+            if self.smote_in_fold:
+                X_fold_tr, y_fold_tr = apply_fold_smote(
+                    X_fold_tr, y_fold_tr, self.k_neighbors, self.seed
+                )
+
             clf = DecisionTreeClassifier(random_state=self.seed)
-            clf.fit(self.X_arr[train_idx][:, col_indices], self.y_arr[train_idx])
+            clf.fit(X_fold_tr, y_fold_tr)
             preds = clf.predict(self.X_arr[val_idx][:, col_indices])
             rmse = float(np.sqrt(np.mean((self.y_arr[val_idx] - preds) ** 2)))
             fold_rmses.append(rmse)
@@ -168,6 +224,8 @@ def compute_pso_cache_hash(
     X_shape: tuple[int, int],
     columns: list[str],
     seed: int,
+    pipeline: str = "pipeline_a",
+    train_index_hash: str | None = None,
 ) -> str:
     """Compute a deterministic SHA-256 hash for caching PSO results.
 
@@ -176,16 +234,27 @@ def compute_pso_cache_hash(
         X_shape: Tuple of (n_rows, n_cols).
         columns: List of feature column names.
         seed: Random seed.
+        pipeline: Pipeline identifier (default "pipeline_a").
+        train_index_hash: Optional SHA-256 hash of training index.
 
     Returns:
         Hexadecimal hash string.
     """
-    payload = {
-        "pso_config": cfg.get("pso", {}),
+    pso_cfg = copy.deepcopy(cfg.get("pso", {}))
+    if pipeline == "pipeline_a":
+        if "fitness" in pso_cfg and "smote_in_fold" in pso_cfg["fitness"]:
+            del pso_cfg["fitness"]["smote_in_fold"]
+
+    payload: dict[str, Any] = {
+        "pso_config": pso_cfg,
         "data_shape": list(X_shape),
         "column_names": list(columns),
         "seed": seed,
     }
+    if pipeline != "pipeline_a" or train_index_hash is not None:
+        payload["pipeline"] = pipeline
+        payload["train_index_hash"] = train_index_hash
+
     encoded = json.dumps(payload, sort_keys=True).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
@@ -244,6 +313,8 @@ def run_pso(
     fitness_fn: Any = None,
     force: bool = False,
     cache_path: Path | str | None = None,
+    pipeline: str = "pipeline_a",
+    train_index_hash: str | None = None,
 ) -> dict[str, Any]:
     """Run Particle Swarm Optimization for feature selection.
 
@@ -254,7 +325,9 @@ def run_pso(
         fitness_fn: Optional pre-constructed callable fitness function(mask) -> float.
         force: If True, bypass cache and recompute.
         cache_path: Optional custom path for reading/writing cache. Defaults to
-            results/cache/pso_pipeline_a.json if caching is enabled.
+            results/cache/pso_{pipeline}.json if caching is enabled.
+        pipeline: Pipeline identifier (default "pipeline_a").
+        train_index_hash: Optional SHA-256 hash of training index.
 
     Returns:
         dict containing:
@@ -287,11 +360,16 @@ def run_pso(
     pso_cfg = cfg.get("pso", {})
     use_cache = bool(pso_cfg.get("use_cache", True))
 
-    default_cache = Path(cfg.get("paths", {}).get("results", "results/")) / "cache" / "pso_pipeline_a.json"
+    default_cache = Path(cfg.get("paths", {}).get("results", "results/")) / "cache" / f"pso_{pipeline}.json"
     target_cache_path = Path(cache_path) if cache_path is not None else default_cache
 
     current_hash = compute_pso_cache_hash(
-        cfg, (len(X), len(X.columns)), list(X.columns), seed
+        cfg,
+        (len(X), len(X.columns)),
+        list(X.columns),
+        seed,
+        pipeline=pipeline,
+        train_index_hash=train_index_hash,
     )
 
     # 2. Check cache
