@@ -6,6 +6,7 @@ Every value the paper does not specify, or any deviation from it, is logged here
 |---|---|---|---|
 | seed | 42 | not specified in paper | NA |
 | Python version | 3.14 | local dev environment | NA |
+| Library versions | scikit-learn==1.9.1, xgboost==3.4.1, imbalanced-learn==0.14.2, numpy==2.5.3, pandas==3.0.6 | Pinned in requirements.txt; paper does not specify package versions; Colab/Kaggle compatibility is untested | not specified in paper |
 | Dataset License | DbCL v1.0 | NA | Kaggle |
 | label polarity | FLAG 1 = suspicious, 0 = benign | Standard fraud classification convention; matches suspicious counts in paper (~2,178 suspicious) | not specified in paper |
 | column-name normalisation | strip, lowercase, non-alphanumerics to '_', collapse repeats | Raw CSV contains leading/trailing spaces, typos, and unclosed parentheses | not specified in paper |
