@@ -10,6 +10,7 @@ Verifies:
 
 from __future__ import annotations
 
+import copy
 import hashlib
 from pathlib import Path
 from typing import Any
@@ -139,11 +140,14 @@ def test_rung_b_ga_calls_run_ga_with_pipeline_b_and_train_index_hash(
         "cached": False,
     }
 
+    cfg_test = copy.deepcopy(base_cfg)
+    cfg_test["paths"]["results"] = str(tmp_path)
+
     with patch("src.pipeline_b.run_ga", return_value=mock_ga_result) as mock_run_ga:
         res = run_pipeline_b_ga(
             model_name="xgboost",
             rung="b",
-            cfg=base_cfg,
+            cfg=cfg_test,
             force=False,
         )
 

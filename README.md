@@ -4,31 +4,31 @@ Reproduction, benchmark and extension of El-Attar et al., *"An Optimized Framewo
 
 To our knowledge, no open-source implementation of the complete framework exists. This is a replication, not a new method.
 
-**Status:** Phase 1 complete (Pipeline A benchmark); Phase 2 not started.
+**Status:** Phase 2.0 complete; 2.1 onwards not started.
 
 ## Results
 
 | Model | Stage | Paper | Pipeline A (replication) | Pipeline B (leakage-safe) | Optimised |
 |---|---|---|---|---|---|
-| XGBoost | default | 0.975 | 0.9967 | not yet run | not yet run |
-| XGBoost | GA | 0.992 | 0.9971 | not yet run | not yet run |
-| SVM | default | 0.744 | 0.9377 | not yet run | not yet run |
-| SVM | GA | 0.87 | 0.9883 | not yet run | not yet run |
-| Isolation Forest | default | 0.694 | 0.4395 | not yet run | not yet run |
-| Isolation Forest | GA | 0.824 | 0.4897 | not yet run | not yet run |
+| XGBoost | default | 0.975 | 0.9967 | 0.9945 | not yet run |
+| XGBoost | GA | 0.992 | 0.9971 | 0.9911 | not yet run |
+| SVM | default | 0.744 | 0.9377 | 0.9196 | not yet run |
+| SVM | GA | 0.87 | 0.9883 | 0.9795 | not yet run |
+| Isolation Forest | default | 0.694 | 0.4395 | 0.7399 | not yet run |
+| Isolation Forest | GA | 0.824 | 0.4897 | 0.3172 | not yet run |
 
-Test accuracy shown on the 22 PSO-selected features. Source: `results/phase1_8_benchmark_20261004_044733.json` (and `.md`).
-- **Data leakage / synthetic contamination:** Under the paper's literal pipeline order (SMOTE applied to the entire dataset before splitting), the Pipeline A test set contains 1,245 synthetic accounts out of 3,065 total test accounts (**40.62% synthetic rows**).
-- **Below-chance anomaly detection:** Isolation Forest achieves test accuracy of 0.4395 (default) and 0.4897 (GA), which is below chance; its ROC-AUC is well below 0.5 (0.1869 default, 0.2289 GA), indicating an inverted anomaly ranking on this feature distribution.
+Test accuracy shown on the 22 PSO-selected features. Source: `results/phase1_8_benchmark_20261004_044733.json` and `results/phase2_0d_ladder_benchmark_*.json` (and `.md`).
+- **Evaluation splits and comparability:** Pipeline A accuracy is evaluated on an unstratified, artificially balanced test set containing 40.62% synthetic accounts (1,245 synthetic / 3,065 total test rows). In contrast, Pipeline B (and Rung L1) evaluates on a strictly natural-ratio test set (1,803 accounts: 1,533 benign, 270 suspicious; 0 synthetic rows), where always predicting benign yields **85.02% majority-class baseline accuracy**. Due to synthetic balancing in Pipeline A, accuracy and precision are not directly comparable across Pipeline A and Pipeline B; ROC-AUC and PR-AUC provide the closest methodological comparison.
+- **Below-chance anomaly detection:** Isolation Forest achieves test accuracy of 0.4395 (default) and 0.4897 (GA) on Pipeline A, and 0.7399 (default) and 0.3172 (GA) on Pipeline B, falling below the majority baseline; its ROC-AUC is well below 0.5 (0.1356 default, 0.1957 GA on Pipeline B), indicating an inverted anomaly ranking on this feature distribution.
 
 ### Replication caveats
 
 Pipeline A is a best-effort replication, not an exact one. Numbers differ from the paper for reasons we could only partly isolate:
 
-- **Dataset:** the data we used `[state exactly what differs: rows / columns / class counts, from results/phase1_1_*.json]` compared with the paper's description (9,841 accounts; 49 features). We could not obtain anything closer.
+- **Dataset:** the data we used compared with the paper's description (9,841 accounts; 49 features; raw 7,662 benign, 2,179 suspicious vs paper 7,663 / 2,178; post-cleaning 7,662 / 1,350 vs paper 7,662 / 1,328). We could not obtain anything closer.
 - **Feature subset:** our PSO selected 22 features, not the paper's 14 (Table 2). The paper does not specify swarm size, c1, c2, SEG, or how continuous positions map to a feature subset, so these are our choices (see `docs/ASSUMPTIONS.md`).
 - **Other unspecified settings:** GA crossover/mutation rates, SMOTE settings, SVM kernel, XGBoost subsample, categorical encoding and seeds are also assumptions.
-- **Pipeline order:** following the paper's numbers, SMOTE runs before the split, so 40.62% of the Pipeline A test set is synthetic. This likely inflates our scores, and the paper's own scores, relative to a leakage-safe evaluation (Pipeline B, not yet run).
+- **Pipeline order:** following the paper's numbers, SMOTE runs before the split in Pipeline A, so 40.62% of the Pipeline A test set is synthetic. Phase 2.0 implements the leakage-safe Pipeline B (split first, fold-wise SMOTE, test natural), establishing honest baselines.
 
 Absolute scores should not be compared directly with the paper due to these differences. See `docs/FINDINGS.md` for the full list of inconsistencies.
 
