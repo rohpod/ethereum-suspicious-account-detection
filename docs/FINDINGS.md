@@ -54,5 +54,35 @@
   - MAE alignment: Recomputed MAE matches reported values within $0.006$ (discrepancy explained entirely by the paper rounding MAE to 2 decimal places, e.g. $0.0248 \rightarrow 0.03$, $0.2551 \rightarrow 0.26$, $0.0078 \rightarrow 0.01$).
   - Section 3 item 5 resolution: Under the standard reading (where $TP + FN$ represents actual positive accounts), positive totals appeared to fluctuate wildly between 1,528 and 1,788. Under the printed row reading, $TP + FP = 1,544$ and $TN + FN = 1,521$ are perfectly constant across all models.
 - **Surprise:**
-  1. Section 3 item 5 confirmed as explained by labelling, not an inconsistent test set: The test set was fixed ($1,544$ benign and $1,521$ suspicious, matching Section 5 text). The apparent contradiction arose because the authors interpreted scikit-learn's standard confusion matrix layout `[[TN, FP], [FN, TP]]` as `[[TP, FP], [FN, TN]]` (inferred from the cell identities and sums).
+  1. Section 3 item 5 confirmed as explained by labelling, not an inconsistent test set: The test set was fixed ($1,544$ benign and $1,521$ suspicious, matching Section 5 text). The apparent contradiction arose because the authors interpreted scikit-learn's standard confusion matrix layout `[[TN, FP], [FN, TN]]` as `[[TP, FP], [FN, TN]]` (inferred from the cell identities and sums).
   2. Reported "Precision" and "Recall" in Tables 8-9 mathematically track the benign class (1,544) under standard definitions, though presented as general detection performance.
+
+## 2026-10-04: Phase 1.4 Particle Swarm Optimization (Pipeline A feature selection)
+
+- **What:** Executed `python -m src.pso` on the full cleaned and scaled dataset (9,012 accounts, 47 features); output saved to `results/phase1_4_pso_20261003_220124.json` and cached to `results/cache/pso_pipeline_a.json`.
+- **Why:** Implement and evaluate PSO feature selection per paper Section 4.2.3, Equations 2-11, Algorithm 1, Figure 4, and Table 2 under Pipeline A semantics.
+- **Number:**
+  - Selected features: 22 features selected vs paper's 14 features ($\Delta = +8$).
+  - Best RMSE: 0.0976 after 50 iterations vs paper reported 0.3443 (substantially lower error; RMSE 0.0976 corresponds to ~99.0% CV accuracy on hard labels, whereas RMSE 0.3443 implies ~88.1% accuracy).
+  - Majority baseline RMSE: 0.3870 (always-predicting-benign baseline on 1,350 suspicious / 9,012 total accounts, $\sqrt{1350/9012}$).
+  - All 47 features RMSE: 0.1214 (DecisionTreeClassifier 3-fold CV with all features).
+  - Table 2 features RMSE:
+    - Candidate 1 (with `erc20_uniq_sent_addr`): 0.1914.
+    - Candidate 2 (with `erc20_uniq_sent_addr_1`): 0.1920.
+    - 13 unambiguous features: 0.1932.
+  - Table 2 overlap:
+    - Unambiguous features overlap: 6 of 13 matched (`time_diff_between_first_and_last_mins`, `unique_received_from_addresses`, `unique_sent_to_addresses`, `avg_val_sent`, `total_erc20_tnxs`, `erc20_total_ether_sent`), Jaccard similarity = 0.2069.
+    - Ambiguous candidate resolution: For `Unique ERC20 Sent address`, Candidate 1 (`erc20_uniq_sent_addr`) was selected by PSO, while Candidate 2 (`erc20_uniq_sent_addr_1`) was not. Including Candidate 1 brings total Table 2 overlap to 7 of 14 features (50.0%).
+    - Missing from Table 2: 7 features (`avg_min_between_received_tnx`, `sent_tnx`, `received_tnx`, `total_transactions_including_tnx_to_create_contract`, `erc20_min_val_sent`, `erc20_max_val_sent`, `erc20_avg_val_sent`).
+    - Extra features: 16 features selected by PSO not in Table 2 (including `erc20_most_sent_token_type`, `total_ether_sent`, `total_ether_received`, `min_val_sent`, etc.).
+  - Fitness evaluations: 1,530 total (30 initial swarm + 50 iterations $\times$ 30 particles).
+  - Wall-clock runtime: 39.63s for PSO optimization (39.85s total pipeline).
+- **Surprise:**
+  1. Selected subset does not match Table 2 exactly: PSO selected 22 features with an overlap of 6/13 unambiguous (7/14 including Candidate 1). This confirms the expectation in PLAN.md Section 10 Phase 1.4 ("Compare the subset with Table 2 (overlap, not equality); target size about 14").
+  2. Optimization significantly outperforms paper reported fitness: Best RMSE achieved is 0.0976 vs paper's 0.3443. Evaluating the paper's Table 2 features directly yields RMSE 0.1914, which is also lower than 0.3443. This indicates the paper either used a weaker classifier for PSO fitness evaluation (e.g. shallow tree, linear model, or different CV split) or terminated early.
+  3. Algorithm 1 oddities confirmed (Section 3 Item 7):
+     - Line 5 uses `>` ("if fitness(x) > fitness(x*)") despite the text stating "search for the minimum objective function value" and reporting RMSE minimization.
+     - Line 7 reassigns `x**_i = x*_i` locally per particle rather than updating a global swarm best $g^*$.
+     - Line 9 loops `d = 1 to iteration` rather than over feature dimensions $d = 1 \dots D$.
+     - No discretization threshold (e.g. $> 0.5$) or empty-subset penalty is specified in the text or algorithm.
+  4. Caching: Deterministic caching verified (`results/cache/pso_pipeline_a.json`), reducing re-runs from ~40s to ~0.001s with hash validation.

@@ -59,6 +59,11 @@ SDG 16, target 16.4 (reducing illicit financial flows). To be confirmed with the
 
 El-Attar et al., Cryptography 2025, 9, 63.
 
-## Licence
+## License
 
-MIT, see `LICENSE`.
+MIT — see [LICENSE](LICENSE).
+
+## Acknowledgements
+
+Development of this application was supported by Antigravity.
+

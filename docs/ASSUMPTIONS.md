@@ -30,3 +30,21 @@ Every value the paper does not specify, or any deviation from it, is logged here
 | MAE definition | MAE = 1 - accuracy on hard labels (mean \|y_true - y_pred\|) | Matches (FP + FN) / total on binary labels | Tables 8-9, Equation (12) |
 | positive class definition | Class 1 (suspicious) as positive class; per-class metrics also tracked | Standard fraud detection convention; macro and benign metrics also computed | not specified in paper |
 | model default hyperparameters | Explicit values from Tables 5-7: XGBoost (n_estimators=100, gamma=0, min_child_weight=1, colsample_bytree=1, max_depth=6, reg_lambda=1, learning_rate=0.3); SVM (C=0.1, gamma=0.1); IF (contamination=0.1, max_samples=256, n_estimators=100) | Paper baseline configurations explicitly pinned rather than relying on library defaults | Tables 5-7 |
+| PSO swarm size | 30 | Standard swarm population; unspecified in paper | not specified in paper |
+| PSO cognitive coefficient c1 | 2.0 | Standard cognitive acceleration parameter in Eq. 10 | not specified in paper |
+| PSO social coefficient c2 | 2.0 | Standard social acceleration parameter in Eq. 10 | not specified in paper |
+| PSO initial inertia weight w_initial | 0.9 | High starting inertia for initial global exploration; Section 4.2.3 states "initialized with a large value" | not specified in paper |
+| PSO SEG parameter | 10 | SEG parameter in Eq. 7 ("SEG is an assumed number") | not specified in paper |
+| PSO search space bounds | [0.0, 1.0] | Continuous particle coordinates mapped to binary inclusion | not specified in paper |
+| PSO velocity clamping | Vmax = (1.0 - 0.0) / 10 = 0.1, clamped to [-0.1, 0.1] | Computed directly from position bounds and SEG per Eq. 6-7 | Section 4.2.3, Equations (6)-(7) |
+| PSO feature selection threshold | position > 0.5 selects feature | Standard midpoint discretization threshold for continuous PSO | not specified in paper |
+| PSO empty subset fitness | 1.0 | Worst possible RMSE on binary targets assigned if zero features are selected | not specified in paper |
+| PSO subset size penalty | None | Pure RMSE without cardinality penalty; paper reports no feature count regularization | not specified in paper |
+| PSO fitness model | DecisionTreeClassifier(random_state=42) | Model evaluating selected subsets unspecified in Section 4.2.3; fast non-linear classifier | not specified in paper |
+| PSO cross-validation | 3-fold StratifiedKFold (shuffle=True, random_state=42) | Stratified cross-validation across cleaned dataset | not specified in paper |
+| PSO fitness metric | RMSE on hard labels: sqrt(mean((y_true - y_pred)^2)) | Hard predictions; paper reports achieving RMSE 0.3443 after 50 iterations | Section 4.2.3 |
+| PSO fitness optimization direction | Minimised as RMSE (equivalent to maximising -RMSE) | Section 4.2.3 text states "search for the minimum objective function value"; Algorithm 1 line 5 '>' treated as typo | Section 4.2.3 |
+| PSO global best tracking | Algorithm 1 line 7 ('x**_i = x*_i') read as swarm-wide global best g* | Standard swarm-wide best tracking rather than particle-local re-assignment | Algorithm 1 |
+| PSO dimension loop | Algorithm 1 line 9 ('For d = 1 to iteration') read as loop over feature dimensions d = 1..D | Dimension update loop; reading as iterations would create quadratic nesting | Algorithm 1 |
+| PSO execution scope (Pipeline A) | Executed on all 9,012 cleaned and scaled accounts before SMOTE and split | Follows Algorithm 6 Step 2 ("feature selection using the PSO algorithm on the whole dataset") | Algorithm 6, Section 4.2 |
+| PSO result caching | results/cache/pso_pipeline_a.json keyed by SHA-256 of config + data shape + columns + seed | Deterministic caching with console notification and --force bypass | not specified in paper |
