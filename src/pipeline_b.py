@@ -1,4 +1,4 @@
-"""Pipeline B execution and leakage ladder (Rungs L1 and B) module.
+"""Pipeline B execution, leakage ladder, and GA hyperparameter optimization module.
 
 Reference:
 - El-Attar et al., "An Optimized Framework for Detecting Suspicious Accounts
@@ -13,7 +13,7 @@ Leakage Ladder Rungs:
   3. Load 22 PSO features from results/cache/pso_pipeline_a.json (strict cache hash verification).
   4. Stratified 80/20 train/test split (preserving natural class ratio in test set).
   5. SMOTE balancing applied to TRAIN split ONLY. Test set remains strictly natural (no synthetic rows).
-  6. Fit and evaluate default models (XGBoost, SVM, IF, CART, LOF) on natural test set.
+  6. Fit and evaluate default or GA models on natural test set.
 
 - B ("Full leakage-safe"):
   1. Drop numeric NaNs on raw data.
@@ -22,7 +22,7 @@ Leakage Ladder Rungs:
   4. PSO feature selection run on training data only (with fold-wise SMOTE inside CV fitness).
   5. Subset training and test sets to PSO-selected features.
   6. SMOTE balancing applied to TRAIN split ONLY. Test set remains strictly natural.
-  7. Fit and evaluate default models (XGBoost, SVM, IF, CART, LOF) on natural test set.
+  7. Fit and evaluate default or GA models on natural test set.
 """
 
 from __future__ import annotations
@@ -53,6 +53,7 @@ from src.evaluate import (
     majority_baseline,
     write_results,
 )
+from src.ga import run_ga, write_logbook_csv
 from src.models import (
     build_cart,
     build_isolation_forest,
@@ -92,6 +93,42 @@ def get_pipeline_b_cfg(cfg: dict[str, Any]) -> dict[str, Any]:
     overrides = cfg_b.get("pipeline_b", {})
     deep_merge(cfg_b, overrides)
     return cfg_b
+
+
+def get_pipeline_b_ga_cfg(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Build Pipeline B GA configuration with overrides applied to a deep copy of cfg."""
+    cfg_b_ga = copy.deepcopy(cfg)
+    overrides_b = cfg_b_ga.get("pipeline_b", {})
+    deep_merge(cfg_b_ga, overrides_b)
+    overrides_ga = cfg_b_ga.get("pipeline_b_ga", {})
+    deep_merge(cfg_b_ga, overrides_ga)
+
+    if "ga" not in cfg_b_ga:
+        cfg_b_ga["ga"] = {}
+    cfg_b_ga["ga"]["smote_in_fold"] = True
+    cfg_b_ga["ga"]["metric"] = "f1_suspicious"
+    return cfg_b_ga
+
+
+def get_pipeline_l1_ga_cfg(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Build Pipeline L1 GA configuration with overrides applied to a deep copy of cfg."""
+    cfg_l1_ga = copy.deepcopy(cfg)
+    if "ga" not in cfg_l1_ga:
+        cfg_l1_ga["ga"] = {}
+    cfg_l1_ga["ga"]["smote_in_fold"] = False
+    cfg_l1_ga["ga"]["metric"] = "f1_suspicious"
+    return cfg_l1_ga
+
+
+def find_latest_phase2_0b_results(cfg: dict[str, Any]) -> dict[str, Any] | None:
+    """Find and load the latest Phase 2.0b defaults results JSON."""
+    results_dir = Path(cfg.get("paths", {}).get("results", "results/"))
+    matches = sorted(results_dir.glob("phase2_0b_pipeline_b_ladder_*.json"))
+    if not matches:
+        return None
+    latest_file = matches[-1]
+    with open(latest_file, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def compare_with_pipeline_a(
@@ -375,6 +412,8 @@ def build_pipeline_b_data(
     return {
         "X_train": X_train_res,
         "y_train": y_train_res,
+        "X_train_natural": X_train_sub,
+        "y_train_natural": y_train_nat,
         "X_test": X_test_sub,
         "y_test": y_test_nat,
         "is_synthetic_train": is_syn_train,
@@ -475,21 +514,270 @@ def evaluate_rung_models(
     return rung_payload, stage_timings
 
 
+def evaluate_ga_ladder(
+    model_name: str,
+    best_params: dict[str, Any],
+    X_train: pd.DataFrame,
+    y_train: pd.Series,
+    X_test: pd.DataFrame,
+    y_test: pd.Series,
+    rung_name: str,
+    cfg: dict[str, Any],
+) -> dict[str, Any]:
+    """Train tuned model on the rung's SMOTE'd train set and evaluate on natural test set."""
+    t_start = time.time()
+    norm_name = model_name.strip().lower()
+    if norm_name in {"xgboost", "xgb"}:
+        model = build_xgboost(best_params, cfg)
+    elif norm_name in {"svm", "svc"}:
+        model = build_svm(best_params, cfg)
+    elif norm_name in {"isolation_forest", "if", "isoforest"}:
+        model = build_isolation_forest(best_params, cfg)
+    else:
+        raise ValueError(f"Unsupported model name '{model_name}'.")
+
+    y_pred, scores = fit_predict_scores(norm_name, model, X_train, y_train, X_test)
+    fit_predict_time = time.time() - t_start
+
+    metrics = compute_metrics(y_true=y_test, y_pred=y_pred, scores=scores)
+    maj_baseline = majority_baseline(y_test)
+
+    # Consistency check
+    expected_counts = {
+        "n_test": len(y_test),
+        0: int((y_test == 0).sum()),
+        1: int((y_test == 1).sum()),
+    }
+    consistency_checks = check_consistency({norm_name: metrics}, expected_counts=expected_counts)
+
+    # Compare with latest Phase 2.0b defaults for the same rung
+    phase2_0b_data = find_latest_phase2_0b_results(cfg)
+    default_comparison: dict[str, Any] = {}
+    if phase2_0b_data and "rungs" in phase2_0b_data:
+        rung_data = phase2_0b_data["rungs"].get(rung_name, {})
+        default_model = rung_data.get("models", {}).get(norm_name, {}).get("metrics", {})
+        if default_model:
+            deltas: dict[str, float] = {}
+            for k in ["accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc", "mcc", "mae"]:
+                if k in metrics and k in default_model:
+                    val_ga = metrics.get(k)
+                    val_def = default_model.get(k)
+                    if val_ga is not None and val_def is not None:
+                        deltas[k] = float(val_ga - val_def)
+            default_comparison = {
+                "default_metrics": default_model,
+                "deltas_to_default": deltas,
+            }
+
+    return {
+        "metrics": metrics,
+        "majority_baseline": maj_baseline,
+        "default_comparison": default_comparison,
+        "consistency_checks": consistency_checks,
+        "fit_predict_time_seconds": fit_predict_time,
+    }
+
+
+def run_pipeline_b_ga(
+    model_name: str,
+    rung: str,
+    cfg: dict[str, Any],
+    force: bool = False,
+) -> dict[str, Any]:
+    """Execute GA hyperparameter tuning on the ladder (Rung L1 or B).
+
+    Args:
+        model_name: Model identifier ('xgboost', 'svm', or 'isolation_forest').
+        rung: Ladder rung ('l1' or 'b').
+        cfg: Base configuration dictionary.
+        force: If True, bypass GA cache and recompute.
+
+    Returns:
+        Dictionary containing output JSON path, logbook CSV path, payload, and timings.
+    """
+    model_norm = model_name.strip().lower()
+    rung_norm = rung.strip().lower()
+
+    if rung_norm not in {"l1", "b"}:
+        raise ValueError(f"Rung must be 'l1' or 'b', got '{rung}'.")
+
+    if rung_norm == "l1" and model_norm not in {"xgboost", "xgb"}:
+        raise ValueError(f"Rung L1 GA only supports xgboost, got '{model_name}'.")
+
+    t_start = time.time()
+    stage_timings: dict[str, float] = {}
+
+    if rung_norm == "l1":
+        cfg_ga = get_pipeline_l1_ga_cfg(cfg)
+        t_data_start = time.time()
+        l1_data = build_pipeline_l1_data(cfg)
+        t_data = time.time() - t_data_start
+        stage_timings["data_prep"] = t_data
+
+        # L1 GA: input is L1's SMOTE'd train set with 22 Pipeline A features
+        X_ga_train = l1_data["X_train"]
+        y_ga_train = l1_data["y_train"]
+        pipeline_name = "pipeline_l1"
+        train_idx_hash = hash_index(l1_data["X_train"].index)
+        feature_names = l1_data["feature_names"]
+        X_eval_train = l1_data["X_train"]
+        y_eval_train = l1_data["y_train"]
+        X_eval_test = l1_data["X_test"]
+        y_eval_test = l1_data["y_test"]
+
+    else:  # rung == "b"
+        cfg_ga = get_pipeline_b_ga_cfg(cfg)
+        t_data_start = time.time()
+        b_data = build_pipeline_b_data(cfg, force_pso=False)
+        t_data = time.time() - t_data_start
+        stage_timings["data_prep"] = t_data
+
+        # Rung B GA: input is the NATURAL (non-SMOTE'd) scaled train set restricted to B's PSO features
+        X_ga_train = b_data["X_train_natural"]
+        y_ga_train = b_data["y_train_natural"]
+        pipeline_name = "pipeline_b"
+        train_idx_hash = hash_index(b_data["X_train_natural"].index)
+        feature_names = b_data["feature_names"]
+        X_eval_train = b_data["X_train"]  # SMOTE'd train set for final model fit
+        y_eval_train = b_data["y_train"]
+        X_eval_test = b_data["X_test"]
+        y_eval_test = b_data["y_test"]
+
+    print(f"\n==========================================================================================")
+    print(f"  RUNNING GA OPTIMIZATION: Model={model_norm.upper()} | Rung={rung_norm.upper()}")
+    print(f"==========================================================================================")
+    print(f"GA Training Data Shape: {X_ga_train.shape} | Natural Class Balance: {y_ga_train.value_counts().to_dict()}")
+    print(f"GA Settings: smote_in_fold={cfg_ga.get('ga', {}).get('smote_in_fold')}, metric={cfg_ga.get('ga', {}).get('metric')}")
+    print(f"Pipeline namespace: {pipeline_name} | train_index_hash: {train_idx_hash[:8]}...")
+
+    t_ga_start = time.time()
+    ga_result = run_ga(
+        model_name=model_norm,
+        X_train=X_ga_train,
+        y_train=y_ga_train,
+        cfg=cfg_ga,
+        feature_set="pso",
+        force=force,
+        verbose=True,
+        pipeline=pipeline_name,
+        train_index_hash=train_idx_hash,
+    )
+    t_ga = time.time() - t_ga_start
+    stage_timings["ga_optimization"] = t_ga
+
+    best_params = ga_result["best_params"]
+    best_fitness = ga_result["best_fitness"]
+    n_evals = ga_result["evaluations"]
+
+    print(f"\nGA Optimization Finished! Evaluations: {n_evals} | Best CV F1(Susp): {best_fitness:.4f}")
+    print(f"Best Hyperparameters: {json.dumps(best_params, indent=2)}")
+
+    # Final model evaluation: fitted on rung's SMOTE'd train set, evaluated ONCE on natural test set
+    t_eval_start = time.time()
+    eval_res = evaluate_ga_ladder(
+        model_name=model_norm,
+        best_params=best_params,
+        X_train=X_eval_train,
+        y_train=y_eval_train,
+        X_test=X_eval_test,
+        y_test=y_eval_test,
+        rung_name=rung_norm,
+        cfg=cfg_ga,
+    )
+    t_eval = time.time() - t_eval_start
+    stage_timings["test_fit_predict"] = t_eval
+    stage_timings["total"] = time.time() - t_start
+
+    out_payload = {
+        "rung": rung_norm,
+        "model": model_norm,
+        "feature_names": feature_names,
+        "feature_count": len(feature_names),
+        "best_params": best_params,
+        "best_fitness_cv_f1_suspicious": best_fitness,
+        "best_individual": ga_result["best_individual"],
+        "total_evaluations": n_evals,
+        "elapsed_seconds": ga_result["elapsed_seconds"],
+        "logbook": ga_result["logbook"],
+        "test_metrics": eval_res["metrics"],
+        "majority_baseline": eval_res["majority_baseline"],
+        "default_comparison": eval_res["default_comparison"],
+        "consistency_checks": eval_res["consistency_checks"],
+    }
+
+    out_json_path = write_results(
+        phase="phase2_0c",
+        name=f"ga_{rung_norm}_{model_norm}",
+        payload=out_payload,
+        cfg=cfg,
+        timings=stage_timings,
+    )
+
+    # Write logbook CSV
+    logbook_csv_path = out_json_path.with_name(out_json_path.stem + "_logbook.csv")
+    write_logbook_csv(ga_result["logbook"], logbook_csv_path)
+
+    return {
+        "out_file": out_json_path,
+        "logbook_csv": logbook_csv_path,
+        "payload": out_payload,
+        "timings": stage_timings,
+    }
+
+
+def print_ga_summary(payload: dict[str, Any]) -> None:
+    """Print readable console summary of GA tuning and test evaluation."""
+    model = payload["model"]
+    rung = payload["rung"]
+    best_params = payload["best_params"]
+    met = payload["test_metrics"]
+    maj = payload["majority_baseline"]
+    def_comp = payload.get("default_comparison", {})
+    def_met = def_comp.get("default_metrics", {})
+    deltas = def_comp.get("deltas_to_default", {})
+
+    print(f"\n==========================================================================================")
+    print(f"  GA EVALUATION RESULTS: {model.upper()} on RUNG {rung.upper()}")
+    print(f"==========================================================================================")
+    print(f"Best Hyperparameters: {json.dumps(best_params, indent=2)}")
+    print(f"CV Fitness (F1 Suspicious): {payload['best_fitness_cv_f1_suspicious']:.4f}")
+    print(f"Evaluations: {payload['total_evaluations']} | Optimization Time: {payload['elapsed_seconds']:.2f}s")
+    print(
+        f"Majority Baseline: Always-Benign Accuracy = {maj['accuracy']:.4f} "
+        f"({maj['accuracy']*100:.2f}%) | Suspicious Recall = {maj['recall_suspicious']:.4f}"
+    )
+
+    print("\nTest Set Metric Comparison (Default vs. GA):")
+    header = (
+        f"{'Metric':<18} | {'Default':<10} | {'GA Tuned':<10} | {'Delta (GA - Def)':<16}"
+    )
+    print(header)
+    print("-" * len(header))
+
+    metrics_to_show = ["accuracy", "precision", "recall", "f1", "roc_auc", "pr_auc", "mcc"]
+    for m in metrics_to_show:
+        def_val = f"{def_met[m]:.4f}" if m in def_met and def_met[m] is not None else "N/A"
+        ga_val = f"{met[m]:.4f}" if m in met and met[m] is not None else "N/A"
+        d_val = f"{deltas[m]:+.4f}" if m in deltas and deltas[m] is not None else "N/A"
+        print(f"{m:<18} | {def_val:<10} | {ga_val:<10} | {d_val:<16}")
+
+    cm = met["confusion_matrix"]
+    print(f"\nConfusion Matrix [[TN, FP], [FN, TP]]:")
+    print(f"  TN={cm[0][0]}, FP={cm[0][1]}")
+    print(f"  FN={cm[1][0]}, TP={cm[1][1]}")
+
+    all_passed = all(c["passed"] for c in payload["consistency_checks"])
+    print(f"\nConsistency Checks: {'ALL PASSED' if all_passed else 'FAILED'}")
+    for c in payload["consistency_checks"]:
+        print(f"  - [{('PASS' if c['passed'] else 'FAIL')}] {c['name']}: {c['detail']}")
+
+
 def run_pipeline_b(
     cfg: dict[str, Any],
     rungs: list[str] = ["l1", "b"],
     force_pso: bool = False,
 ) -> dict[str, Any]:
-    """Execute Pipeline B leakage ladder across specified rungs.
-
-    Args:
-        cfg: Base configuration dictionary.
-        rungs: List of rungs to run ('l1', 'b', or both).
-        force_pso: If True, bypass PSO cache and recompute.
-
-    Returns:
-        dict containing out_file path, payload, and stage timings.
-    """
+    """Execute Pipeline B leakage ladder across specified rungs."""
     t_start = time.time()
     stage_timings: dict[str, float] = {}
     rungs_results: dict[str, Any] = {}
@@ -610,13 +898,24 @@ def print_rung_summary(rung_name: str, rung_title: str, rung_data: dict[str, Any
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Run Pipeline B Leakage Ladder (Rungs L1 and B) with default models."
+        description="Run Pipeline B Leakage Ladder (Rungs L1 and B) with default models or GA tuning."
     )
     parser.add_argument(
         "--rung",
         choices=["l1", "b", "all"],
         default="all",
         help="Leakage ladder rung to execute (default: all).",
+    )
+    parser.add_argument(
+        "--ga",
+        choices=["xgboost", "svm", "isolation_forest"],
+        default=None,
+        help="Run GA hyperparameter tuning for specified model on chosen rung.",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force recomputation of GA / PSO, bypassing existing cache.",
     )
     parser.add_argument(
         "--force-pso",
@@ -629,28 +928,41 @@ if __name__ == "__main__":
     with open(cfg_path, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
-    rungs_to_run = ["l1", "b"] if args.rung == "all" else [args.rung]
+    if args.ga:
+        target_rung = "b" if args.rung == "all" else args.rung
+        res = run_pipeline_b_ga(
+            model_name=args.ga,
+            rung=target_rung,
+            cfg=cfg,
+            force=args.force,
+        )
+        print_ga_summary(res["payload"])
+        print(f"\nResults written to: {res['out_file']}")
+        print(f"Logbook CSV written to: {res['logbook_csv']}")
+    else:
+        rungs_to_run = ["l1", "b"] if args.rung == "all" else [args.rung]
+        force_pso_flag = args.force or args.force_pso
 
-    res = run_pipeline_b(cfg, rungs=rungs_to_run, force_pso=args.force_pso)
-    payload = res["payload"]
-    results = payload["rungs"]
-    out_file = res["out_file"]
-    timings = res["timings"]
+        res = run_pipeline_b(cfg, rungs=rungs_to_run, force_pso=force_pso_flag)
+        payload = res["payload"]
+        results = payload["rungs"]
+        out_file = res["out_file"]
+        timings = res["timings"]
 
-    print("\n==========================================================================================")
-    print(f"  PIPELINE B LEAKAGE LADDER COMPLETED")
-    print(f"  Output saved to: {out_file}")
-    print(f"==========================================================================================")
+        print("\n==========================================================================================")
+        print(f"  PIPELINE B LEAKAGE LADDER COMPLETED")
+        print(f"  Output saved to: {out_file}")
+        print(f"==========================================================================================")
 
-    rung_titles = {
-        "l1": "SMOTE after split only (leaky scaling & Pipeline A 22 features)",
-        "b": "Full Leakage-Safe (stratified split first, train-only scaling & PSO)",
-    }
+        rung_titles = {
+            "l1": "SMOTE after split only (leaky scaling & Pipeline A 22 features)",
+            "b": "Full Leakage-Safe (stratified split first, train-only scaling & PSO)",
+        }
 
-    for r_name in rungs_to_run:
-        if r_name in results:
-            print_rung_summary(r_name, rung_titles[r_name], results[r_name])
+        for r_name in rungs_to_run:
+            if r_name in results:
+                print_rung_summary(r_name, rung_titles[r_name], results[r_name])
 
-    print("\nExecution Timings (seconds):")
-    for k, v in timings.items():
-        print(f"  {k:<30}: {v:.2f}s")
+        print("\nExecution Timings (seconds):")
+        for k, v in timings.items():
+            print(f"  {k:<30}: {v:.2f}s")

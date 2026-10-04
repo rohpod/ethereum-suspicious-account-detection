@@ -285,5 +285,11 @@ pipeline_b:
   split:
     stratify: true
 
+pipeline_b_ga:
+  ga:
+    smote_in_fold: true
+    metric: "f1_suspicious"
+
+
 
 

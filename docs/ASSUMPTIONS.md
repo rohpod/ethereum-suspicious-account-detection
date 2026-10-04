@@ -85,5 +85,10 @@ Every value the paper does not specify, or any deviation from it, is logged here
 | SMOTE timing on B | Applied after PSO feature selection on the selected training subset | Balancing the full training feature matrix before PSO would leak synthetic information into feature selection and inflate dimensionality; aligns with Pipeline B train-only policy | not specified in paper |
 | Missing numeric value cleaning timing (Pipeline B) | Dropped before train/test split | Dropping rows with missing numeric values is a deterministic row-wise filtering rule that does not learn or estimate distribution statistics across rows, so applying it before split is leakage-free and preserves clean account indexing | not specified in paper |
 | L1 feature set | Reuses Pipeline A 22 PSO-selected features | Leakage ladder rung L1 specifically isolates the effect of moving SMOTE after split while holding feature selection and scaling leaky | not specified in paper |
+| GA metric (B and L1) | f1_suspicious (F1 score of class 1) | The 85/15 natural class ratio makes overall accuracy reward predicting the benign majority class at the expense of suspicious-class recall | not specified in paper |
+| Fold-wise SMOTE in B's GA | smote_in_fold=true inside inner StratifiedKFold CV | Prevents synthetic oversampling leakage across validation folds while preserving minority representation in training folds | not specified in paper |
+| L1 GA resampling scope | smote_in_fold=false on SMOTE'd train set | Leakage ladder rung L1 specifically isolates the effect of moving split before SMOTE while intentionally keeping paper-style pre-CV resampling leak within GA | not specified in paper |
+| Final model fitting after GA | Fitted on full SMOTE'd training split before test evaluation | Once best hyperparameters are identified via GA cross-validation, the final model is trained on the resampled training split to address class imbalance during inference on the natural test set | not specified in paper |
+
 
 
