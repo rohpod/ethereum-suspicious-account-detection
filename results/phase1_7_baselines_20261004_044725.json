@@ -1,0 +1,1662 @@
+{
+  "timestamp": "20261004_044725",
+  "config": {
+    "seed": 42,
+    "paths": {
+      "data_raw": "data/",
+      "results": "results/"
+    },
+    "data": {
+      "filename": "transaction_dataset.csv",
+      "label_column": "FLAG",
+      "suspicious_label": 1,
+      "id_columns": [
+        "Unnamed: 0",
+        "Index",
+        "Address"
+      ],
+      "categorical_columns": [
+        " ERC20 most sent token type",
+        " ERC20_most_rec_token_type"
+      ]
+    },
+    "cleaning": {
+      "policy": "drop_numeric_missing",
+      "deduplicate": false
+    },
+    "scaling": {
+      "method": "zscore"
+    },
+    "paper_reference": {
+      "rows": 9841,
+      "benign": 7663,
+      "suspicious": 2178,
+      "features_text": 49,
+      "features_table_a2": 45,
+      "cleaned_rows": 8990,
+      "cleaned_benign": 7662,
+      "cleaned_suspicious": 1328,
+      "dropped_rows": 851,
+      "smote_rows": 15324,
+      "train": 12259,
+      "test": 3065,
+      "test_benign": 1544,
+      "test_suspicious": 1521
+    },
+    "models": {
+      "xgboost": {
+        "objective": "binary:logistic",
+        "subsample": 1.0,
+        "defaults": {
+          "n_estimators": 100,
+          "gamma": 0.0,
+          "min_child_weight": 1,
+          "colsample_bytree": 1.0,
+          "max_depth": 6,
+          "reg_lambda": 1.0,
+          "learning_rate": 0.3
+        }
+      },
+      "svm": {
+        "kernel": "rbf",
+        "defaults": {
+          "C": 0.1,
+          "gamma": 0.1
+        }
+      },
+      "isolation_forest": {
+        "defaults": {
+          "contamination": 0.1,
+          "max_samples": 256,
+          "n_estimators": 100
+        }
+      },
+      "cart": {
+        "criterion": "gini",
+        "max_depth": null,
+        "min_samples_split": 2,
+        "min_samples_leaf": 1
+      },
+      "lof": {
+        "n_neighbors": 20,
+        "contamination": "auto",
+        "novelty": true
+      }
+    },
+    "pso": {
+      "iterations": 50,
+      "inertia_decay": 0.99,
+      "swarm_size": 30,
+      "c1": 2.0,
+      "c2": 2.0,
+      "w_initial": 0.9,
+      "seg": 10,
+      "bounds": [
+        0.0,
+        1.0
+      ],
+      "select_threshold": 0.5,
+      "empty_subset_fitness": 1.0,
+      "fitness": {
+        "model": "decision_tree",
+        "cv_folds": 3,
+        "metric": "rmse_hard_labels"
+      },
+      "use_cache": true,
+      "table2_columns": [
+        "avg_min_between_received_tnx",
+        "time_diff_between_first_and_last_mins",
+        "sent_tnx",
+        "received_tnx",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "avg_val_sent",
+        "total_transactions_including_tnx_to_create_contract",
+        "total_erc20_tnxs",
+        "erc20_total_ether_sent",
+        "erc20_min_val_sent",
+        "erc20_max_val_sent",
+        "erc20_avg_val_sent"
+      ],
+      "table2_ambiguous": {
+        "Unique ERC20 Sent address": [
+          "erc20_uniq_sent_addr",
+          "erc20_uniq_sent_addr_1"
+        ]
+      }
+    },
+    "features": {
+      "table2_reference": [
+        "avg_min_between_received_tnx",
+        "time_diff_between_first_and_last_mins",
+        "sent_tnx",
+        "received_tnx",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "avg_val_sent",
+        "total_transactions_including_tnx_to_create_contract",
+        "total_erc20_tnxs",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_min_val_sent",
+        "erc20_max_val_sent",
+        "erc20_avg_val_sent"
+      ]
+    },
+    "smote": {
+      "k_neighbors": 5,
+      "sampling_strategy": "auto"
+    },
+    "split": {
+      "test_size": 0.2,
+      "shuffle": true,
+      "stratify": false
+    },
+    "ga": {
+      "population": 50,
+      "generations": 20,
+      "cxpb": 0.5,
+      "mutpb": 0.2,
+      "indpb": 0.2,
+      "sigma_fraction": 0.1,
+      "blend_alpha": 0.5,
+      "cv_folds": 3,
+      "metric": "accuracy",
+      "use_cache": true,
+      "search_spaces": {
+        "xgboost": [
+          {
+            "name": "n_estimators",
+            "type": "int",
+            "bounds": [
+              10,
+              300
+            ]
+          },
+          {
+            "name": "gamma",
+            "type": "float",
+            "bounds": [
+              0.0,
+              5.0
+            ]
+          },
+          {
+            "name": "min_child_weight",
+            "type": "float",
+            "bounds": [
+              1.0,
+              10.0
+            ]
+          },
+          {
+            "name": "colsample_bytree",
+            "type": "float",
+            "bounds": [
+              0.3,
+              1.0
+            ]
+          },
+          {
+            "name": "max_depth",
+            "type": "int",
+            "bounds": [
+              3,
+              10
+            ]
+          },
+          {
+            "name": "reg_lambda",
+            "type": "float",
+            "bounds": [
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "name": "learning_rate",
+            "type": "float",
+            "bounds": [
+              0.01,
+              1.0
+            ]
+          }
+        ],
+        "svm": [
+          {
+            "name": "C",
+            "type": "log10_float",
+            "bounds": [
+              -2.0,
+              2.0
+            ]
+          },
+          {
+            "name": "gamma",
+            "type": "log10_float",
+            "bounds": [
+              -3.0,
+              1.30103
+            ]
+          }
+        ],
+        "isolation_forest": [
+          {
+            "name": "contamination",
+            "type": "float",
+            "bounds": [
+              0.01,
+              0.5
+            ]
+          },
+          {
+            "name": "max_samples",
+            "type": "int",
+            "bounds": [
+              64,
+              2048
+            ]
+          },
+          {
+            "name": "n_estimators",
+            "type": "int",
+            "bounds": [
+              50,
+              300
+            ]
+          }
+        ]
+      }
+    },
+    "paper_results": {
+      "default": {
+        "xgboost": {
+          "accuracy": 0.975,
+          "precision": 0.97,
+          "recall": 0.98,
+          "f1": 0.975,
+          "auc": 0.97
+        },
+        "svm": {
+          "accuracy": 0.744,
+          "precision": 0.826,
+          "recall": 0.713,
+          "f1": 0.765,
+          "auc": 0.71
+        },
+        "isolation_forest": {
+          "accuracy": 0.694,
+          "precision": 0.732,
+          "recall": 0.683,
+          "f1": 0.707,
+          "auc": 0.53
+        }
+      },
+      "ga_params": {
+        "xgboost": {
+          "n_estimators": 79,
+          "gamma": 0.28,
+          "min_child_weight": 1.94,
+          "colsample_bytree": 0.58,
+          "max_depth": 5,
+          "reg_lambda": 0.77,
+          "learning_rate": 0.55
+        },
+        "svm": {
+          "C": 10.92,
+          "gamma": 13.262
+        },
+        "isolation_forest": {
+          "contamination": 0.3,
+          "max_samples": 1000,
+          "n_estimators": 89
+        }
+      },
+      "ga": {
+        "xgboost": {
+          "accuracy": 0.992,
+          "precision": 0.992,
+          "recall": 0.993,
+          "f1": 0.992,
+          "auc": 0.99,
+          "mae": 0.01
+        },
+        "svm": {
+          "accuracy": 0.87,
+          "precision": 0.869,
+          "recall": 0.872,
+          "f1": 0.87,
+          "auc": 0.86,
+          "mae": 0.13
+        },
+        "isolation_forest": {
+          "accuracy": 0.824,
+          "precision": 0.824,
+          "recall": 0.827,
+          "f1": 0.825,
+          "auc": 0.79,
+          "mae": 0.18
+        }
+      },
+      "table10": {
+        "xgboost_ga": {
+          "method": "Our Proposed Framework",
+          "algorithm": "XGBoost with GA",
+          "reference": "El-Attar et al. [ours]",
+          "accuracy": 0.992,
+          "mae": 0.01,
+          "precision": 0.992,
+          "recall": 0.993,
+          "f1": 0.992,
+          "auc": 0.99,
+          "std_of_accuracy": 0.109
+        },
+        "lof": {
+          "method": "Fangfang et al.",
+          "algorithm": "LOF",
+          "reference": "[12]",
+          "accuracy": 0.949,
+          "mae": 0.06,
+          "precision": 0.946,
+          "recall": 0.954,
+          "f1": 0.949,
+          "auc": 0.94,
+          "std_of_accuracy": 0.103
+        },
+        "cart": {
+          "method": "Saxena et al.",
+          "algorithm": "CART",
+          "reference": "[14]",
+          "accuracy": 0.81,
+          "mae": 0.22,
+          "precision": 0.813,
+          "recall": 0.81,
+          "f1": 0.809,
+          "auc": 0.81,
+          "std_of_accuracy": 0.035
+        },
+        "xgboost_default": {
+          "method": "Alarab et al.",
+          "algorithm": "XGBoost",
+          "reference": "[16]",
+          "accuracy": 0.975,
+          "mae": 0.03,
+          "precision": 0.97,
+          "recall": 0.98,
+          "f1": 0.975,
+          "auc": 0.97,
+          "std_of_accuracy": 0.107
+        }
+      }
+    }
+  },
+  "source_phase1_5_file": "results/phase1_5_pipeline_a_defaults_20261004_031101.json",
+  "library_versions": {
+    "scikit-learn": "1.9.1",
+    "numpy": "2.5.3",
+    "pandas": "3.0.6"
+  },
+  "paper_table10": {
+    "xgboost_ga": {
+      "method": "Our Proposed Framework",
+      "algorithm": "XGBoost with GA",
+      "reference": "El-Attar et al. [ours]",
+      "accuracy": 0.992,
+      "mae": 0.01,
+      "precision": 0.992,
+      "recall": 0.993,
+      "f1": 0.992,
+      "auc": 0.99,
+      "std_of_accuracy": 0.109
+    },
+    "lof": {
+      "method": "Fangfang et al.",
+      "algorithm": "LOF",
+      "reference": "[12]",
+      "accuracy": 0.949,
+      "mae": 0.06,
+      "precision": 0.946,
+      "recall": 0.954,
+      "f1": 0.949,
+      "auc": 0.94,
+      "std_of_accuracy": 0.103
+    },
+    "cart": {
+      "method": "Saxena et al.",
+      "algorithm": "CART",
+      "reference": "[14]",
+      "accuracy": 0.81,
+      "mae": 0.22,
+      "precision": 0.813,
+      "recall": 0.81,
+      "f1": 0.809,
+      "auc": 0.81,
+      "std_of_accuracy": 0.035
+    },
+    "xgboost_default": {
+      "method": "Alarab et al.",
+      "algorithm": "XGBoost",
+      "reference": "[16]",
+      "accuracy": 0.975,
+      "mae": 0.03,
+      "precision": 0.97,
+      "recall": 0.98,
+      "f1": 0.975,
+      "auc": 0.97,
+      "std_of_accuracy": 0.107
+    }
+  },
+  "feature_sets": {
+    "pso": {
+      "feature_count": 22,
+      "features": [
+        "avg_min_between_sent_tnx",
+        "time_diff_between_first_and_last_mins",
+        "number_of_created_contracts",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "min_val_sent",
+        "avg_val_sent",
+        "min_value_sent_to_contract",
+        "avg_value_sent_to_contract",
+        "total_ether_sent",
+        "total_ether_received",
+        "total_ether_sent_contracts",
+        "total_erc20_tnxs",
+        "erc20_total_ether_received",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_uniq_rec_contract_addr",
+        "erc20_avg_time_between_sent_tnx",
+        "erc20_avg_time_between_rec_tnx",
+        "erc20_max_val_sent_contract",
+        "erc20_uniq_rec_token_name",
+        "erc20_most_sent_token_type"
+      ],
+      "smote_report": {
+        "rows_before": 9012,
+        "rows_after": 15324,
+        "synthetic_rows_added": 6312,
+        "class_counts_before": {
+          "0": 7662,
+          "1": 1350
+        },
+        "class_counts_after": {
+          "0": 7662,
+          "1": 7662
+        },
+        "paper_comparison": {
+          "smote_rows": {
+            "paper": 15324,
+            "actual": 15324,
+            "matches": true,
+            "delta": 0
+          }
+        }
+      },
+      "split_report": {
+        "train_rows": 12259,
+        "test_rows": 3065,
+        "train_class_counts": {
+          "0": 6132,
+          "1": 6127
+        },
+        "test_class_counts": {
+          "1": 1535,
+          "0": 1530
+        },
+        "synthetic_train_count": 5067,
+        "synthetic_test_count": 1245,
+        "synthetic_test_ratio": 0.4061990212071778,
+        "paper_comparison": {
+          "train": {
+            "paper": 12259,
+            "actual": 12259,
+            "matches": true,
+            "delta": 0
+          },
+          "test": {
+            "paper": 3065,
+            "actual": 3065,
+            "matches": true,
+            "delta": 0
+          },
+          "test_benign": {
+            "paper": 1544,
+            "actual": 1530,
+            "matches": false,
+            "delta": -14
+          },
+          "test_suspicious": {
+            "paper": 1521,
+            "actual": 1535,
+            "matches": false,
+            "delta": 14
+          }
+        }
+      },
+      "models": {
+        "cart": {
+          "algorithm": "CART",
+          "reference": "[14]",
+          "method_author": "Saxena et al.",
+          "hyperparameters": {
+            "criterion": "gini",
+            "max_depth": null,
+            "min_samples_split": 2,
+            "min_samples_leaf": 1,
+            "random_state": 42
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1519,
+                11
+              ],
+              [
+                9,
+                1526
+              ]
+            ],
+            "tn": 1519,
+            "fp": 11,
+            "fn": 9,
+            "tp": 1526,
+            "accuracy": 0.9934747145187602,
+            "mae": 0.0065252854812398045,
+            "precision": 0.9928432010409889,
+            "recall": 0.9941368078175896,
+            "f1": 0.9934895833333333,
+            "precision_benign": 0.9941099476439791,
+            "recall_benign": 0.9928104575163399,
+            "f1_benign": 0.9934597776324395,
+            "macro_precision": 0.993476574342484,
+            "macro_recall": 0.9934736326669648,
+            "macro_f1": 0.9934746804828865,
+            "mcc": 0.9869502070050649,
+            "roc_auc": 0.9934736326669649,
+            "pr_auc": 0.989958349012844
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.18347471451876018,
+            "mae": -0.21347471451876018,
+            "precision": 0.17984320104098894,
+            "recall": 0.18413680781758957,
+            "f1": 0.1844895833333332,
+            "auc": 0.18347363266696481
+          },
+          "paper_table10_reference": {
+            "method": "Saxena et al.",
+            "algorithm": "CART",
+            "reference": "[14]",
+            "accuracy": 0.81,
+            "mae": 0.22,
+            "precision": 0.813,
+            "recall": 0.81,
+            "f1": 0.809,
+            "auc": 0.81,
+            "std_of_accuracy": 0.035
+          },
+          "fit_time_seconds": 0.024188995361328125
+        },
+        "lof": {
+          "algorithm": "LOF",
+          "reference": "[12]",
+          "method_author": "Fangfang et al.",
+          "hyperparameters": {
+            "n_neighbors": 20,
+            "contamination": "auto",
+            "novelty": true
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1196,
+                334
+              ],
+              [
+                1398,
+                137
+              ]
+            ],
+            "tn": 1196,
+            "fp": 334,
+            "fn": 1398,
+            "tp": 137,
+            "accuracy": 0.43491027732463294,
+            "mae": 0.5650897226753671,
+            "precision": 0.2908704883227176,
+            "recall": 0.08925081433224756,
+            "f1": 0.1365902293120638,
+            "precision_benign": 0.4610639938319198,
+            "recall_benign": 0.7816993464052288,
+            "f1_benign": 0.5800193986420951,
+            "macro_precision": 0.3759672410773187,
+            "macro_recall": 0.43547508036873817,
+            "macro_f1": 0.3583048139770794,
+            "mcc": -0.17892125420004953,
+            "roc_auc": 0.40118881863277345,
+            "pr_auc": 0.4344590808188888
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": -0.514089722675367,
+            "mae": 0.505089722675367,
+            "precision": -0.6551295116772824,
+            "recall": -0.8647491856677524,
+            "f1": -0.8124097706879362,
+            "auc": -0.5388111813672265
+          },
+          "paper_table10_reference": {
+            "method": "Fangfang et al.",
+            "algorithm": "LOF",
+            "reference": "[12]",
+            "accuracy": 0.949,
+            "mae": 0.06,
+            "precision": 0.946,
+            "recall": 0.954,
+            "f1": 0.949,
+            "auc": 0.94,
+            "std_of_accuracy": 0.103
+          },
+          "fit_time_seconds": 0.17209601402282715
+        },
+        "xgboost_default": {
+          "algorithm": "XGBoost",
+          "reference": "[16]",
+          "method_author": "Alarab et al.",
+          "source_file": "results/phase1_5_pipeline_a_defaults_20261004_031101.json",
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1529,
+                1
+              ],
+              [
+                9,
+                1526
+              ]
+            ],
+            "tn": 1529,
+            "fp": 1,
+            "fn": 9,
+            "tp": 1526,
+            "accuracy": 0.9967373572593801,
+            "mae": 0.0032626427406199023,
+            "precision": 0.9993451211525868,
+            "recall": 0.9941368078175896,
+            "f1": 0.9967341606792947,
+            "precision_benign": 0.994148244473342,
+            "recall_benign": 0.9993464052287582,
+            "f1_benign": 0.9967405475880052,
+            "macro_precision": 0.9967466828129644,
+            "macro_recall": 0.9967416065231739,
+            "macro_f1": 0.9967373541336499,
+            "mcc": 0.9934882893231695,
+            "roc_auc": 0.9999467756700943,
+            "pr_auc": 0.9999474405480961
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.021737357259380086,
+            "mae": -0.026737357259380097,
+            "precision": 0.029345121152586806,
+            "recall": 0.014136807817589636,
+            "f1": 0.02173416067929468,
+            "auc": 0.029946775670094294
+          },
+          "paper_table10_reference": {
+            "method": "Alarab et al.",
+            "algorithm": "XGBoost",
+            "reference": "[16]",
+            "accuracy": 0.975,
+            "mae": 0.03,
+            "precision": 0.97,
+            "recall": 0.98,
+            "f1": 0.975,
+            "auc": 0.97,
+            "std_of_accuracy": 0.107
+          },
+          "reused_from_phase1_5": true
+        }
+      },
+      "consistency_checks": [
+        {
+          "name": "class_totals_consistent_across_models",
+          "passed": true,
+          "detail": "All 3 models evaluated on identical class totals: positive=1535, negative=1530"
+        },
+        {
+          "name": "accuracy_recomputed_matches_reported",
+          "passed": true,
+          "detail": "All models have recomputed accuracy matching reported accuracy within tolerance 0.001."
+        },
+        {
+          "name": "test_counts_match_expected",
+          "passed": true,
+          "detail": "All models match expected test set counts: {'n_test': 3065}"
+        }
+      ]
+    },
+    "table2": {
+      "feature_count": 14,
+      "features": [
+        "avg_min_between_received_tnx",
+        "time_diff_between_first_and_last_mins",
+        "sent_tnx",
+        "received_tnx",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "avg_val_sent",
+        "total_transactions_including_tnx_to_create_contract",
+        "total_erc20_tnxs",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_min_val_sent",
+        "erc20_max_val_sent",
+        "erc20_avg_val_sent"
+      ],
+      "smote_report": {
+        "rows_before": 9012,
+        "rows_after": 15324,
+        "synthetic_rows_added": 6312,
+        "class_counts_before": {
+          "0": 7662,
+          "1": 1350
+        },
+        "class_counts_after": {
+          "0": 7662,
+          "1": 7662
+        },
+        "paper_comparison": {
+          "smote_rows": {
+            "paper": 15324,
+            "actual": 15324,
+            "matches": true,
+            "delta": 0
+          }
+        }
+      },
+      "split_report": {
+        "train_rows": 12259,
+        "test_rows": 3065,
+        "train_class_counts": {
+          "0": 6132,
+          "1": 6127
+        },
+        "test_class_counts": {
+          "1": 1535,
+          "0": 1530
+        },
+        "synthetic_train_count": 5067,
+        "synthetic_test_count": 1245,
+        "synthetic_test_ratio": 0.4061990212071778,
+        "paper_comparison": {
+          "train": {
+            "paper": 12259,
+            "actual": 12259,
+            "matches": true,
+            "delta": 0
+          },
+          "test": {
+            "paper": 3065,
+            "actual": 3065,
+            "matches": true,
+            "delta": 0
+          },
+          "test_benign": {
+            "paper": 1544,
+            "actual": 1530,
+            "matches": false,
+            "delta": -14
+          },
+          "test_suspicious": {
+            "paper": 1521,
+            "actual": 1535,
+            "matches": false,
+            "delta": 14
+          }
+        }
+      },
+      "models": {
+        "cart": {
+          "algorithm": "CART",
+          "reference": "[14]",
+          "method_author": "Saxena et al.",
+          "hyperparameters": {
+            "criterion": "gini",
+            "max_depth": null,
+            "min_samples_split": 2,
+            "min_samples_leaf": 1,
+            "random_state": 42
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1489,
+                41
+              ],
+              [
+                41,
+                1494
+              ]
+            ],
+            "tn": 1489,
+            "fp": 41,
+            "fn": 41,
+            "tp": 1494,
+            "accuracy": 0.9732463295269168,
+            "mae": 0.026753670473083198,
+            "precision": 0.9732899022801303,
+            "recall": 0.9732899022801303,
+            "f1": 0.9732899022801303,
+            "precision_benign": 0.973202614379085,
+            "recall_benign": 0.973202614379085,
+            "f1_benign": 0.973202614379085,
+            "macro_precision": 0.9732462583296076,
+            "macro_recall": 0.9732462583296076,
+            "macro_f1": 0.9732462583296076,
+            "mcc": 0.9464925166592153,
+            "roc_auc": 0.9730454961572035,
+            "pr_auc": 0.9602807050992227
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.16324632952691676,
+            "mae": -0.1932463295269168,
+            "precision": 0.1602899022801304,
+            "recall": 0.1632899022801303,
+            "f1": 0.1642899022801303,
+            "auc": 0.16304549615720343
+          },
+          "paper_table10_reference": {
+            "method": "Saxena et al.",
+            "algorithm": "CART",
+            "reference": "[14]",
+            "accuracy": 0.81,
+            "mae": 0.22,
+            "precision": 0.813,
+            "recall": 0.81,
+            "f1": 0.809,
+            "auc": 0.81,
+            "std_of_accuracy": 0.035
+          },
+          "fit_time_seconds": 0.04915785789489746
+        },
+        "lof": {
+          "algorithm": "LOF",
+          "reference": "[12]",
+          "method_author": "Fangfang et al.",
+          "hyperparameters": {
+            "n_neighbors": 20,
+            "contamination": "auto",
+            "novelty": true
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1262,
+                268
+              ],
+              [
+                1435,
+                100
+              ]
+            ],
+            "tn": 1262,
+            "fp": 268,
+            "fn": 1435,
+            "tp": 100,
+            "accuracy": 0.4443719412724307,
+            "mae": 0.5556280587275694,
+            "precision": 0.2717391304347826,
+            "recall": 0.06514657980456026,
+            "f1": 0.10509721492380451,
+            "precision_benign": 0.467927326659251,
+            "recall_benign": 0.8248366013071895,
+            "f1_benign": 0.5971137922876745,
+            "macro_precision": 0.36983322854701683,
+            "macro_recall": 0.4449915905558749,
+            "macro_f1": 0.3511055036057395,
+            "mcc": -0.1692367224937372,
+            "roc_auc": 0.3812650358731984,
+            "pr_auc": 0.4272194124184291
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": -0.5046280587275693,
+            "mae": 0.4956280587275694,
+            "precision": -0.6742608695652174,
+            "recall": -0.8888534201954397,
+            "f1": -0.8439027850761954,
+            "auc": -0.5587349641268016
+          },
+          "paper_table10_reference": {
+            "method": "Fangfang et al.",
+            "algorithm": "LOF",
+            "reference": "[12]",
+            "accuracy": 0.949,
+            "mae": 0.06,
+            "precision": 0.946,
+            "recall": 0.954,
+            "f1": 0.949,
+            "auc": 0.94,
+            "std_of_accuracy": 0.103
+          },
+          "fit_time_seconds": 0.8105828762054443
+        },
+        "xgboost_default": {
+          "algorithm": "XGBoost",
+          "reference": "[16]",
+          "method_author": "Alarab et al.",
+          "source_file": "results/phase1_5_pipeline_a_defaults_20261004_031101.json",
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1512,
+                18
+              ],
+              [
+                14,
+                1521
+              ]
+            ],
+            "tn": 1512,
+            "fp": 18,
+            "fn": 14,
+            "tp": 1521,
+            "accuracy": 0.9895595432300163,
+            "mae": 0.010440456769983687,
+            "precision": 0.9883040935672515,
+            "recall": 0.9908794788273616,
+            "f1": 0.9895901106050748,
+            "precision_benign": 0.9908256880733946,
+            "recall_benign": 0.9882352941176471,
+            "f1_benign": 0.9895287958115184,
+            "macro_precision": 0.989564890820323,
+            "macro_recall": 0.9895573864725044,
+            "macro_f1": 0.9895594532082966,
+            "mcc": 0.9791222772640693,
+            "roc_auc": 0.9992335696493583,
+            "pr_auc": 0.9992011825064047
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.014559543230016292,
+            "mae": -0.01955954323001631,
+            "precision": 0.01830409356725149,
+            "recall": 0.010879478827361622,
+            "f1": 0.014590110605074869,
+            "auc": 0.029233569649358304
+          },
+          "paper_table10_reference": {
+            "method": "Alarab et al.",
+            "algorithm": "XGBoost",
+            "reference": "[16]",
+            "accuracy": 0.975,
+            "mae": 0.03,
+            "precision": 0.97,
+            "recall": 0.98,
+            "f1": 0.975,
+            "auc": 0.97,
+            "std_of_accuracy": 0.107
+          },
+          "reused_from_phase1_5": true
+        }
+      },
+      "consistency_checks": [
+        {
+          "name": "class_totals_consistent_across_models",
+          "passed": true,
+          "detail": "All 3 models evaluated on identical class totals: positive=1535, negative=1530"
+        },
+        {
+          "name": "accuracy_recomputed_matches_reported",
+          "passed": true,
+          "detail": "All models have recomputed accuracy matching reported accuracy within tolerance 0.001."
+        },
+        {
+          "name": "test_counts_match_expected",
+          "passed": true,
+          "detail": "All models match expected test set counts: {'n_test': 3065}"
+        }
+      ]
+    }
+  },
+  "results": {
+    "pso": {
+      "feature_count": 22,
+      "features": [
+        "avg_min_between_sent_tnx",
+        "time_diff_between_first_and_last_mins",
+        "number_of_created_contracts",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "min_val_sent",
+        "avg_val_sent",
+        "min_value_sent_to_contract",
+        "avg_value_sent_to_contract",
+        "total_ether_sent",
+        "total_ether_received",
+        "total_ether_sent_contracts",
+        "total_erc20_tnxs",
+        "erc20_total_ether_received",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_uniq_rec_contract_addr",
+        "erc20_avg_time_between_sent_tnx",
+        "erc20_avg_time_between_rec_tnx",
+        "erc20_max_val_sent_contract",
+        "erc20_uniq_rec_token_name",
+        "erc20_most_sent_token_type"
+      ],
+      "smote_report": {
+        "rows_before": 9012,
+        "rows_after": 15324,
+        "synthetic_rows_added": 6312,
+        "class_counts_before": {
+          "0": 7662,
+          "1": 1350
+        },
+        "class_counts_after": {
+          "0": 7662,
+          "1": 7662
+        },
+        "paper_comparison": {
+          "smote_rows": {
+            "paper": 15324,
+            "actual": 15324,
+            "matches": true,
+            "delta": 0
+          }
+        }
+      },
+      "split_report": {
+        "train_rows": 12259,
+        "test_rows": 3065,
+        "train_class_counts": {
+          "0": 6132,
+          "1": 6127
+        },
+        "test_class_counts": {
+          "1": 1535,
+          "0": 1530
+        },
+        "synthetic_train_count": 5067,
+        "synthetic_test_count": 1245,
+        "synthetic_test_ratio": 0.4061990212071778,
+        "paper_comparison": {
+          "train": {
+            "paper": 12259,
+            "actual": 12259,
+            "matches": true,
+            "delta": 0
+          },
+          "test": {
+            "paper": 3065,
+            "actual": 3065,
+            "matches": true,
+            "delta": 0
+          },
+          "test_benign": {
+            "paper": 1544,
+            "actual": 1530,
+            "matches": false,
+            "delta": -14
+          },
+          "test_suspicious": {
+            "paper": 1521,
+            "actual": 1535,
+            "matches": false,
+            "delta": 14
+          }
+        }
+      },
+      "models": {
+        "cart": {
+          "algorithm": "CART",
+          "reference": "[14]",
+          "method_author": "Saxena et al.",
+          "hyperparameters": {
+            "criterion": "gini",
+            "max_depth": null,
+            "min_samples_split": 2,
+            "min_samples_leaf": 1,
+            "random_state": 42
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1519,
+                11
+              ],
+              [
+                9,
+                1526
+              ]
+            ],
+            "tn": 1519,
+            "fp": 11,
+            "fn": 9,
+            "tp": 1526,
+            "accuracy": 0.9934747145187602,
+            "mae": 0.0065252854812398045,
+            "precision": 0.9928432010409889,
+            "recall": 0.9941368078175896,
+            "f1": 0.9934895833333333,
+            "precision_benign": 0.9941099476439791,
+            "recall_benign": 0.9928104575163399,
+            "f1_benign": 0.9934597776324395,
+            "macro_precision": 0.993476574342484,
+            "macro_recall": 0.9934736326669648,
+            "macro_f1": 0.9934746804828865,
+            "mcc": 0.9869502070050649,
+            "roc_auc": 0.9934736326669649,
+            "pr_auc": 0.989958349012844
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.18347471451876018,
+            "mae": -0.21347471451876018,
+            "precision": 0.17984320104098894,
+            "recall": 0.18413680781758957,
+            "f1": 0.1844895833333332,
+            "auc": 0.18347363266696481
+          },
+          "paper_table10_reference": {
+            "method": "Saxena et al.",
+            "algorithm": "CART",
+            "reference": "[14]",
+            "accuracy": 0.81,
+            "mae": 0.22,
+            "precision": 0.813,
+            "recall": 0.81,
+            "f1": 0.809,
+            "auc": 0.81,
+            "std_of_accuracy": 0.035
+          },
+          "fit_time_seconds": 0.024188995361328125
+        },
+        "lof": {
+          "algorithm": "LOF",
+          "reference": "[12]",
+          "method_author": "Fangfang et al.",
+          "hyperparameters": {
+            "n_neighbors": 20,
+            "contamination": "auto",
+            "novelty": true
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1196,
+                334
+              ],
+              [
+                1398,
+                137
+              ]
+            ],
+            "tn": 1196,
+            "fp": 334,
+            "fn": 1398,
+            "tp": 137,
+            "accuracy": 0.43491027732463294,
+            "mae": 0.5650897226753671,
+            "precision": 0.2908704883227176,
+            "recall": 0.08925081433224756,
+            "f1": 0.1365902293120638,
+            "precision_benign": 0.4610639938319198,
+            "recall_benign": 0.7816993464052288,
+            "f1_benign": 0.5800193986420951,
+            "macro_precision": 0.3759672410773187,
+            "macro_recall": 0.43547508036873817,
+            "macro_f1": 0.3583048139770794,
+            "mcc": -0.17892125420004953,
+            "roc_auc": 0.40118881863277345,
+            "pr_auc": 0.4344590808188888
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": -0.514089722675367,
+            "mae": 0.505089722675367,
+            "precision": -0.6551295116772824,
+            "recall": -0.8647491856677524,
+            "f1": -0.8124097706879362,
+            "auc": -0.5388111813672265
+          },
+          "paper_table10_reference": {
+            "method": "Fangfang et al.",
+            "algorithm": "LOF",
+            "reference": "[12]",
+            "accuracy": 0.949,
+            "mae": 0.06,
+            "precision": 0.946,
+            "recall": 0.954,
+            "f1": 0.949,
+            "auc": 0.94,
+            "std_of_accuracy": 0.103
+          },
+          "fit_time_seconds": 0.17209601402282715
+        },
+        "xgboost_default": {
+          "algorithm": "XGBoost",
+          "reference": "[16]",
+          "method_author": "Alarab et al.",
+          "source_file": "results/phase1_5_pipeline_a_defaults_20261004_031101.json",
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1529,
+                1
+              ],
+              [
+                9,
+                1526
+              ]
+            ],
+            "tn": 1529,
+            "fp": 1,
+            "fn": 9,
+            "tp": 1526,
+            "accuracy": 0.9967373572593801,
+            "mae": 0.0032626427406199023,
+            "precision": 0.9993451211525868,
+            "recall": 0.9941368078175896,
+            "f1": 0.9967341606792947,
+            "precision_benign": 0.994148244473342,
+            "recall_benign": 0.9993464052287582,
+            "f1_benign": 0.9967405475880052,
+            "macro_precision": 0.9967466828129644,
+            "macro_recall": 0.9967416065231739,
+            "macro_f1": 0.9967373541336499,
+            "mcc": 0.9934882893231695,
+            "roc_auc": 0.9999467756700943,
+            "pr_auc": 0.9999474405480961
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.021737357259380086,
+            "mae": -0.026737357259380097,
+            "precision": 0.029345121152586806,
+            "recall": 0.014136807817589636,
+            "f1": 0.02173416067929468,
+            "auc": 0.029946775670094294
+          },
+          "paper_table10_reference": {
+            "method": "Alarab et al.",
+            "algorithm": "XGBoost",
+            "reference": "[16]",
+            "accuracy": 0.975,
+            "mae": 0.03,
+            "precision": 0.97,
+            "recall": 0.98,
+            "f1": 0.975,
+            "auc": 0.97,
+            "std_of_accuracy": 0.107
+          },
+          "reused_from_phase1_5": true
+        }
+      },
+      "consistency_checks": [
+        {
+          "name": "class_totals_consistent_across_models",
+          "passed": true,
+          "detail": "All 3 models evaluated on identical class totals: positive=1535, negative=1530"
+        },
+        {
+          "name": "accuracy_recomputed_matches_reported",
+          "passed": true,
+          "detail": "All models have recomputed accuracy matching reported accuracy within tolerance 0.001."
+        },
+        {
+          "name": "test_counts_match_expected",
+          "passed": true,
+          "detail": "All models match expected test set counts: {'n_test': 3065}"
+        }
+      ]
+    },
+    "table2": {
+      "feature_count": 14,
+      "features": [
+        "avg_min_between_received_tnx",
+        "time_diff_between_first_and_last_mins",
+        "sent_tnx",
+        "received_tnx",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "avg_val_sent",
+        "total_transactions_including_tnx_to_create_contract",
+        "total_erc20_tnxs",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_min_val_sent",
+        "erc20_max_val_sent",
+        "erc20_avg_val_sent"
+      ],
+      "smote_report": {
+        "rows_before": 9012,
+        "rows_after": 15324,
+        "synthetic_rows_added": 6312,
+        "class_counts_before": {
+          "0": 7662,
+          "1": 1350
+        },
+        "class_counts_after": {
+          "0": 7662,
+          "1": 7662
+        },
+        "paper_comparison": {
+          "smote_rows": {
+            "paper": 15324,
+            "actual": 15324,
+            "matches": true,
+            "delta": 0
+          }
+        }
+      },
+      "split_report": {
+        "train_rows": 12259,
+        "test_rows": 3065,
+        "train_class_counts": {
+          "0": 6132,
+          "1": 6127
+        },
+        "test_class_counts": {
+          "1": 1535,
+          "0": 1530
+        },
+        "synthetic_train_count": 5067,
+        "synthetic_test_count": 1245,
+        "synthetic_test_ratio": 0.4061990212071778,
+        "paper_comparison": {
+          "train": {
+            "paper": 12259,
+            "actual": 12259,
+            "matches": true,
+            "delta": 0
+          },
+          "test": {
+            "paper": 3065,
+            "actual": 3065,
+            "matches": true,
+            "delta": 0
+          },
+          "test_benign": {
+            "paper": 1544,
+            "actual": 1530,
+            "matches": false,
+            "delta": -14
+          },
+          "test_suspicious": {
+            "paper": 1521,
+            "actual": 1535,
+            "matches": false,
+            "delta": 14
+          }
+        }
+      },
+      "models": {
+        "cart": {
+          "algorithm": "CART",
+          "reference": "[14]",
+          "method_author": "Saxena et al.",
+          "hyperparameters": {
+            "criterion": "gini",
+            "max_depth": null,
+            "min_samples_split": 2,
+            "min_samples_leaf": 1,
+            "random_state": 42
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1489,
+                41
+              ],
+              [
+                41,
+                1494
+              ]
+            ],
+            "tn": 1489,
+            "fp": 41,
+            "fn": 41,
+            "tp": 1494,
+            "accuracy": 0.9732463295269168,
+            "mae": 0.026753670473083198,
+            "precision": 0.9732899022801303,
+            "recall": 0.9732899022801303,
+            "f1": 0.9732899022801303,
+            "precision_benign": 0.973202614379085,
+            "recall_benign": 0.973202614379085,
+            "f1_benign": 0.973202614379085,
+            "macro_precision": 0.9732462583296076,
+            "macro_recall": 0.9732462583296076,
+            "macro_f1": 0.9732462583296076,
+            "mcc": 0.9464925166592153,
+            "roc_auc": 0.9730454961572035,
+            "pr_auc": 0.9602807050992227
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.16324632952691676,
+            "mae": -0.1932463295269168,
+            "precision": 0.1602899022801304,
+            "recall": 0.1632899022801303,
+            "f1": 0.1642899022801303,
+            "auc": 0.16304549615720343
+          },
+          "paper_table10_reference": {
+            "method": "Saxena et al.",
+            "algorithm": "CART",
+            "reference": "[14]",
+            "accuracy": 0.81,
+            "mae": 0.22,
+            "precision": 0.813,
+            "recall": 0.81,
+            "f1": 0.809,
+            "auc": 0.81,
+            "std_of_accuracy": 0.035
+          },
+          "fit_time_seconds": 0.04915785789489746
+        },
+        "lof": {
+          "algorithm": "LOF",
+          "reference": "[12]",
+          "method_author": "Fangfang et al.",
+          "hyperparameters": {
+            "n_neighbors": 20,
+            "contamination": "auto",
+            "novelty": true
+          },
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1262,
+                268
+              ],
+              [
+                1435,
+                100
+              ]
+            ],
+            "tn": 1262,
+            "fp": 268,
+            "fn": 1435,
+            "tp": 100,
+            "accuracy": 0.4443719412724307,
+            "mae": 0.5556280587275694,
+            "precision": 0.2717391304347826,
+            "recall": 0.06514657980456026,
+            "f1": 0.10509721492380451,
+            "precision_benign": 0.467927326659251,
+            "recall_benign": 0.8248366013071895,
+            "f1_benign": 0.5971137922876745,
+            "macro_precision": 0.36983322854701683,
+            "macro_recall": 0.4449915905558749,
+            "macro_f1": 0.3511055036057395,
+            "mcc": -0.1692367224937372,
+            "roc_auc": 0.3812650358731984,
+            "pr_auc": 0.4272194124184291
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": -0.5046280587275693,
+            "mae": 0.4956280587275694,
+            "precision": -0.6742608695652174,
+            "recall": -0.8888534201954397,
+            "f1": -0.8439027850761954,
+            "auc": -0.5587349641268016
+          },
+          "paper_table10_reference": {
+            "method": "Fangfang et al.",
+            "algorithm": "LOF",
+            "reference": "[12]",
+            "accuracy": 0.949,
+            "mae": 0.06,
+            "precision": 0.946,
+            "recall": 0.954,
+            "f1": 0.949,
+            "auc": 0.94,
+            "std_of_accuracy": 0.103
+          },
+          "fit_time_seconds": 0.8105828762054443
+        },
+        "xgboost_default": {
+          "algorithm": "XGBoost",
+          "reference": "[16]",
+          "method_author": "Alarab et al.",
+          "source_file": "results/phase1_5_pipeline_a_defaults_20261004_031101.json",
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1512,
+                18
+              ],
+              [
+                14,
+                1521
+              ]
+            ],
+            "tn": 1512,
+            "fp": 18,
+            "fn": 14,
+            "tp": 1521,
+            "accuracy": 0.9895595432300163,
+            "mae": 0.010440456769983687,
+            "precision": 0.9883040935672515,
+            "recall": 0.9908794788273616,
+            "f1": 0.9895901106050748,
+            "precision_benign": 0.9908256880733946,
+            "recall_benign": 0.9882352941176471,
+            "f1_benign": 0.9895287958115184,
+            "macro_precision": 0.989564890820323,
+            "macro_recall": 0.9895573864725044,
+            "macro_f1": 0.9895594532082966,
+            "mcc": 0.9791222772640693,
+            "roc_auc": 0.9992335696493583,
+            "pr_auc": 0.9992011825064047
+          },
+          "deltas_to_paper_table10": {
+            "accuracy": 0.014559543230016292,
+            "mae": -0.01955954323001631,
+            "precision": 0.01830409356725149,
+            "recall": 0.010879478827361622,
+            "f1": 0.014590110605074869,
+            "auc": 0.029233569649358304
+          },
+          "paper_table10_reference": {
+            "method": "Alarab et al.",
+            "algorithm": "XGBoost",
+            "reference": "[16]",
+            "accuracy": 0.975,
+            "mae": 0.03,
+            "precision": 0.97,
+            "recall": 0.98,
+            "f1": 0.975,
+            "auc": 0.97,
+            "std_of_accuracy": 0.107
+          },
+          "reused_from_phase1_5": true
+        }
+      },
+      "consistency_checks": [
+        {
+          "name": "class_totals_consistent_across_models",
+          "passed": true,
+          "detail": "All 3 models evaluated on identical class totals: positive=1535, negative=1530"
+        },
+        {
+          "name": "accuracy_recomputed_matches_reported",
+          "passed": true,
+          "detail": "All models have recomputed accuracy matching reported accuracy within tolerance 0.001."
+        },
+        {
+          "name": "test_counts_match_expected",
+          "passed": true,
+          "detail": "All models match expected test set counts: {'n_test': 3065}"
+        }
+      ]
+    }
+  },
+  "timings_seconds": {
+    "pso_cart": 0.024188995361328125,
+    "pso_lof": 0.17209601402282715,
+    "pso_total": 0.28691697120666504,
+    "table2_cart": 0.04915785789489746,
+    "table2_lof": 0.8105828762054443,
+    "table2_total": 0.9629108905792236,
+    "total": 1.2503230571746826
+  }
+}
