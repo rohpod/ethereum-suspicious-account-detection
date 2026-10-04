@@ -5,6 +5,8 @@ All tests use synthetic data only; no raw dataset required.
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -27,14 +29,18 @@ def test_isolation_forest_api_facts() -> None:
     X_test = pd.DataFrame(np.vstack([inliers[:10], outliers]), columns=["f1", "f2", "f3"])
     y_dummy = pd.Series([0] * len(X_train))
 
-    model = build_isolation_forest(params={"contamination": 0.1, "n_estimators": 50})
+    model = build_isolation_forest(
+        params={"contamination": 0.1, "n_estimators": 50, "max_samples": "auto"}
+    )
     raw_pred = model.fit(X_train).predict(X_test)
 
     # Scikit-learn raw predict must return only {-1, 1}
     assert set(np.unique(raw_pred)).issubset({-1, 1})
 
     # Wrapper fit_predict_scores must map -1 -> 1 (suspicious) and 1 -> 0 (benign)
-    model_fresh = build_isolation_forest(params={"contamination": 0.1, "n_estimators": 50})
+    model_fresh = build_isolation_forest(
+        params={"contamination": 0.1, "n_estimators": 50, "max_samples": "auto"}
+    )
     y_pred, scores = fit_predict_scores(
         "isolation_forest", model_fresh, X_train, y_dummy, X_test
     )
@@ -53,7 +59,9 @@ def test_isolation_forest_api_facts() -> None:
     assert np.sum(y_pred[:10]) <= 2  # Inliers largely unflagged
 
     # Label independence: fitting on shuffled or inverted labels yields identical predictions
-    model_shuffled = build_isolation_forest(params={"contamination": 0.1, "n_estimators": 50})
+    model_shuffled = build_isolation_forest(
+        params={"contamination": 0.1, "n_estimators": 50, "max_samples": "auto"}
+    )
     y_shuffled = pd.Series(rng.permutation(len(X_train)))
     y_pred_shuffled, scores_shuffled = fit_predict_scores(
         "isolation_forest", model_shuffled, X_train, y_shuffled, X_test
@@ -122,3 +130,23 @@ def test_model_builders_override_params() -> None:
     iso = build_isolation_forest(params={"n_estimators": 25, "contamination": 0.05})
     assert iso.get_params()["n_estimators"] == 25
     assert iso.get_params()["contamination"] == 0.05
+
+
+def test_svm_no_future_warning_and_score_direction() -> None:
+    """Regression test: build_svm and fit raise no FutureWarning, and decision_function aligns."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+
+        svm = build_svm()
+        rng = np.random.default_rng(42)
+        c0 = rng.normal(loc=0.0, scale=0.5, size=(30, 2))
+        c1 = rng.normal(loc=10.0, scale=0.5, size=(30, 2))
+        X = pd.DataFrame(np.vstack([c0, c1]), columns=["x1", "x2"])
+        y = pd.Series([0] * 30 + [1] * 30)
+
+        svm.fit(X, y)
+        scores = svm.decision_function(X)
+
+    assert np.mean(scores[30:]) > np.mean(scores[:30])
+    assert np.min(scores[30:]) > np.max(scores[:30])
+

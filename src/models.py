@@ -82,7 +82,7 @@ def build_svm(
     """Build an unfitted Support Vector Machine (SVC) classifier with paper defaults.
 
     Paper Reference: Table 1, Table 6, Algorithm 4.
-    Defaults from Table 6: C=0.1, gamma=0.1. Kernel: rbf. probability=False.
+    Defaults from Table 6: C=0.1, gamma=0.1. Kernel: rbf.
 
     Args:
         params: Optional hyperparameter overrides.
@@ -97,11 +97,11 @@ def build_svm(
     model_cfg = cfg.get("models", {}).get("svm", {})
     default_params = model_cfg.get("defaults", {}).copy()
 
+    # Omit probability: deprecated in scikit-learn 1.9 (removed in 1.11); default is False.
     init_params: dict[str, Any] = {
         "C": default_params.get("C", 0.1),
         "gamma": default_params.get("gamma", 0.1),
         "kernel": model_cfg.get("kernel", "rbf"),
-        "probability": False,
         "random_state": cfg.get("seed", 42),
     }
 
