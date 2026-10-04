@@ -354,6 +354,38 @@ def split_train_test(
     return X_train, X_test, y_train, y_test, is_synthetic_train, is_synthetic_test, report
 
 
+def split_stratified(
+    X: pd.DataFrame,
+    y: pd.Series,
+    cfg: dict[str, Any],
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+    """Split dataset into stratified training and testing sets preserving natural class ratio.
+
+    Pipeline B semantics: splitting precedes scaling, SMOTE, and feature selection.
+
+    Args:
+        X: Feature DataFrame.
+        y: Binary label Series (0 = benign, 1 = suspicious).
+        cfg: Configuration dictionary.
+
+    Returns:
+        tuple of (X_train, X_test, y_train, y_test).
+    """
+    split_cfg = cfg.get("split", {})
+    test_size = float(split_cfg.get("test_size", 0.2))
+    seed = int(cfg.get("seed", 42))
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=test_size,
+        random_state=seed,
+        shuffle=True,
+        stratify=y,
+    )
+    return X_train, X_test, y_train, y_test
+
+
 if __name__ == "__main__":
     t0 = time.time()
     cfg_path = Path("config/config.yaml")

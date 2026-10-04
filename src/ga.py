@@ -15,6 +15,7 @@ Reference:
 from __future__ import annotations
 
 import argparse
+import copy
 import csv
 import hashlib
 import json
@@ -29,6 +30,8 @@ import pandas as pd
 import sklearn
 import yaml
 from deap import algorithms, base, creator, tools
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
 from xgboost import __version__ as xgboost_version
 
@@ -40,6 +43,7 @@ from src.models import (
     fit_predict_scores,
 )
 from src.pipeline_a import build_pipeline_a_data
+from src.pso import hash_index
 
 # Ensure DEAP creator classes are registered once safely
 if "FitnessMax" not in creator.__dict__:
@@ -122,7 +126,12 @@ class GAFitness:
 
         ga_cfg = cfg.get("ga", {})
         self.cv_folds = int(ga_cfg.get("cv_folds", 3))
+        self.metric = str(ga_cfg.get("metric", "accuracy")).strip().lower()
+        self.smote_in_fold = bool(ga_cfg.get("smote_in_fold", False))
         self.seed = int(cfg.get("seed", 42))
+
+        smote_cfg = cfg.get("smote", {})
+        self.k_neighbors = int(smote_cfg.get("k_neighbors", 5))
 
         self.X_arr = np.asarray(X_train, dtype=float)
         self.y_arr = np.asarray(y_train, dtype=int)
@@ -146,36 +155,61 @@ class GAFitness:
             raise ValueError(f"Unsupported model name '{self.model_name}'.")
 
     def __call__(self, individual: list[float]) -> tuple[float]:
-        """Evaluate stratified cross-validation mean accuracy.
+        """Evaluate stratified cross-validation mean performance.
 
         Args:
             individual: List of continuous genes.
 
         Returns:
-            tuple of (mean_accuracy,).
+            tuple of (mean_fitness,).
         """
         self.eval_count += 1
         params = decode_individual(individual, self.param_specs)
 
-        fold_accuracies: list[float] = []
+        fold_scores: list[float] = []
         for train_idx, val_idx in self.splits:
             X_tr = pd.DataFrame(self.X_arr[train_idx], columns=self.columns)
             y_tr = pd.Series(self.y_arr[train_idx])
             X_val = pd.DataFrame(self.X_arr[val_idx], columns=self.columns)
             y_val = self.y_arr[val_idx]
 
+            if self.smote_in_fold:
+                # Small-minority guard
+                y_arr_fold = np.asarray(y_tr, dtype=int)
+                classes, counts = np.unique(y_arr_fold, return_counts=True)
+                if len(classes) >= 2:
+                    min_count = int(np.min(counts))
+                    if min_count >= 2:
+                        k = self.k_neighbors
+                        if min_count <= k:
+                            k = min_count - 1
+                        smote = SMOTE(k_neighbors=k, random_state=self.seed)
+                        X_tr, y_tr = smote.fit_resample(X_tr, y_tr)
+
             model = self._build_model(params)
             y_pred, _ = fit_predict_scores(self.model_name, model, X_tr, y_tr, X_val)
-            acc = float(np.mean(y_pred == y_val))
-            fold_accuracies.append(acc)
 
-        mean_acc = float(np.mean(fold_accuracies))
-        if mean_acc <= 0.0:
+            if self.metric == "f1_suspicious":
+                score = float(f1_score(y_val, y_pred, pos_label=1, zero_division=0.0))
+            elif self.metric == "accuracy":
+                score = float(np.mean(y_pred == y_val))
+            else:
+                raise ValueError(
+                    f"Unsupported GA metric '{self.metric}'. Expected 'accuracy' or 'f1_suspicious'."
+                )
+            fold_scores.append(score)
+
+        mean_score = float(np.mean(fold_scores))
+        if self.metric == "f1_suspicious":
+            # Roulette selection requires strictly positive fitness (> 0); floor at 1e-6 when F1 is 0
+            if mean_score <= 0.0:
+                mean_score = 1e-6
+        elif mean_score <= 0.0:
             raise ValueError(
-                f"Fitness must be positive for roulette selection; got {mean_acc}."
+                f"Fitness must be positive for roulette selection; got {mean_score}."
             )
 
-        return (mean_acc,)
+        return (mean_score,)
 
 
 def make_ga_fitness(
@@ -213,6 +247,8 @@ def compute_ga_cache_hash(
     feature_names: list[str],
     seed: int,
     library_versions: dict[str, str],
+    pipeline: str = "pipeline_a",
+    train_index_hash: str | None = None,
 ) -> str:
     """Compute deterministic SHA-256 hash for GA cache validation.
 
@@ -226,14 +262,21 @@ def compute_ga_cache_hash(
         feature_names: Names of feature columns in training data.
         seed: Random seed.
         library_versions: Pinned library version mapping.
+        pipeline: Pipeline identifier (default "pipeline_a").
+        train_index_hash: Optional SHA-256 hash of training index.
 
     Returns:
         Hex-encoded SHA-256 digest string.
     """
+    ga_config = copy.deepcopy(ga_cfg)
+    if pipeline == "pipeline_a":
+        if "smote_in_fold" in ga_config:
+            del ga_config["smote_in_fold"]
+
     payload = {
         "model_name": model_name,
         "feature_set": feature_set,
-        "ga_cfg": ga_cfg,
+        "ga_cfg": ga_config,
         "param_specs": param_specs,
         "X_train_shape": list(X_train_shape),
         "y_train_shape": list(y_train_shape),
@@ -241,6 +284,10 @@ def compute_ga_cache_hash(
         "seed": seed,
         "library_versions": library_versions,
     }
+    if pipeline != "pipeline_a" or train_index_hash is not None:
+        payload["pipeline"] = pipeline
+        payload["train_index_hash"] = train_index_hash
+
     dumped = json.dumps(payload, sort_keys=True)
     return hashlib.sha256(dumped.encode("utf-8")).hexdigest()
 
@@ -257,6 +304,8 @@ def run_ga(
     pop_size_override: int | None = None,
     n_gen_override: int | None = None,
     verbose: bool = False,
+    pipeline: str = "pipeline_a",
+    train_index_hash: str | None = None,
 ) -> dict[str, Any]:
     """Execute Genetic Algorithm hyperparameter optimization with eaSimple semantics.
 
@@ -272,6 +321,8 @@ def run_ga(
         pop_size_override: Optional population size override (used for budget probe).
         n_gen_override: Optional generation count override (used for budget probe).
         verbose: If True, print generational progress.
+        pipeline: Pipeline identifier (default "pipeline_a").
+        train_index_hash: Optional SHA-256 hash of training index.
 
     Returns:
         dict containing best_params, best_fitness, best_individual,
@@ -313,10 +364,13 @@ def run_ga(
         feature_names=list(X_train.columns),
         seed=seed,
         library_versions=lib_versions,
+        pipeline=pipeline,
+        train_index_hash=train_index_hash,
     )
 
+    results_dir = Path(cfg.get("paths", {}).get("results", "results/"))
     if cache_path is None:
-        target_cache_path = Path(f"results/cache/ga_pipeline_a_{model_name}_{feature_set}.json")
+        target_cache_path = results_dir / "cache" / f"ga_{pipeline}_{model_name}_{feature_set}.json"
     else:
         target_cache_path = Path(cache_path)
 
@@ -437,6 +491,8 @@ def run_budget_probe(
     y_train: pd.Series,
     cfg: dict[str, Any],
     feature_set: str = "pso",
+    pipeline: str = "pipeline_a",
+    train_index_hash: str | None = None,
 ) -> dict[str, Any]:
     """Execute lightweight budget probe (population 4, 1 generation) to measure evaluation cost.
 
@@ -446,6 +502,8 @@ def run_budget_probe(
         y_train: Training label Series.
         cfg: Configuration dictionary.
         feature_set: Feature set identifier ('pso' or 'table2').
+        pipeline: Pipeline identifier (default "pipeline_a").
+        train_index_hash: Optional SHA-256 hash of training index.
 
     Returns:
         dict containing measured seconds per eval and projections for 1000 and 600 evals.
@@ -461,6 +519,8 @@ def run_budget_probe(
         pop_size_override=4,
         n_gen_override=1,
         verbose=False,
+        pipeline=pipeline,
+        train_index_hash=train_index_hash,
     )
     t1 = time.time()
     elapsed = t1 - t0
