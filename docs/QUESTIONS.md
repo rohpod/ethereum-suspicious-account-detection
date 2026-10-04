@@ -34,3 +34,24 @@
   - In standard anomaly/fraud detection literature, Precision and Recall evaluate the minority/suspicious class.
   - We cannot confirm author intent, but the mathematical identity $TP + FP = 1,544$ strongly infers this orientation.
   - For Pipeline A benchmark reporting, we will report both the paper-reproduced formula values and explicit per-class (suspicious vs benign) metrics in `src/evaluate.py`.
+
+## Phase 1.4: Ambiguous Table 2 Feature Mapping for "Unique ERC20 Sent address"
+
+- **Status:** Documented and isolated in `config/config.yaml` under `pso.table2_ambiguous`.
+- **Context:**
+  - Table 2 in paper Section 4.2.3 lists 14 selected features. Feature 11 is printed as:
+    - Name: *"Unique ERC20 Sent address"*
+    - Description: *"Number of unique addresses that received ERC20 token transactions."*
+  - In `data/transaction_dataset.csv`, two distinct columns exist with identical semantic headers:
+    1. Raw column `' ERC20 uniq sent addr'` $\rightarrow$ normalised `erc20_uniq_sent_addr` (column index 27 in X).
+    2. Raw column `' ERC20 uniq sent addr.1'` $\rightarrow$ normalised `erc20_uniq_sent_addr_1` (column index 29 in X).
+  - Both columns are present in the Kaggle dataset source. Table A2 in Appendix A lists *"Unique ERC20 Sent Address"* only once, offering no clarification on the duplicate `".1"` column in the CSV.
+- **Resolution for Replication:**
+  - Strict anti-hallucination policy: We do not guess or arbitrarily choose between the two candidates.
+  - `config/config.yaml` isolates the 13 unambiguous matches under `pso.table2_columns` and maps `Unique ERC20 Sent address` to `["erc20_uniq_sent_addr", "erc20_uniq_sent_addr_1"]` under `pso.table2_ambiguous`.
+  - Diagnostics in `results/phase1_4_pso_20261003_220124.json` evaluate Table 2 under both candidates:
+    - Candidate 1 (`erc20_uniq_sent_addr`): 14-feature RMSE = 0.1914.
+    - Candidate 2 (`erc20_uniq_sent_addr_1`): 14-feature RMSE = 0.1920.
+    - 13 unambiguous features alone: RMSE = 0.1932.
+  - In our PSO execution (seed 42), the algorithm selected Candidate 1 (`erc20_uniq_sent_addr`) and did not select Candidate 2, yielding 7 of 14 features matching Table 2 when Candidate 1 is considered.
+

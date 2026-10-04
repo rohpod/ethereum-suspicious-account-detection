@@ -51,8 +51,39 @@ models:
       max_samples: 256
       n_estimators: 100
 pso:
-  iterations: 50    # paper 4.2.3
-  inertia_decay: 0.99
+  iterations: 50          # paper 4.2.3
+  inertia_decay: 0.99     # paper Eq. 8 (alpha = 0.99)
+  swarm_size: 30          # assumption: not specified in paper
+  c1: 2.0                 # assumption: cognitive coefficient not specified in paper
+  c2: 2.0                 # assumption: social coefficient not specified in paper
+  w_initial: 0.9          # assumption: initial inertia weight not specified in paper
+  seg: 10                 # assumption: SEG parameter in Eq. 7 not specified in paper
+  bounds: [0.0, 1.0]      # assumption: particle position search space
+  select_threshold: 0.5   # assumption: continuous position to feature selection threshold
+  empty_subset_fitness: 1.0 # assumption: worst possible RMSE assigned to empty subset
+  fitness:
+    model: decision_tree
+    cv_folds: 3
+    metric: rmse_hard_labels
+  use_cache: true
+  table2_columns:
+    - avg_min_between_received_tnx
+    - time_diff_between_first_and_last_mins
+    - sent_tnx
+    - received_tnx
+    - unique_received_from_addresses
+    - unique_sent_to_addresses
+    - avg_val_sent
+    - total_transactions_including_tnx_to_create_contract
+    - total_erc20_tnxs
+    - erc20_total_ether_sent
+    - erc20_min_val_sent
+    - erc20_max_val_sent
+    - erc20_avg_val_sent
+  table2_ambiguous:
+    "Unique ERC20 Sent address":
+      - erc20_uniq_sent_addr
+      - erc20_uniq_sent_addr_1
 ga:
   population: 50    # paper 4.3
   generations: 20
