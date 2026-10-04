@@ -17,8 +17,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import yaml
+from imblearn.over_sampling import SMOTE
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from src.data import (
@@ -176,6 +179,179 @@ def apply_scaler(scaler: StandardScaler, X: pd.DataFrame) -> pd.DataFrame:
     """
     scaled_arr = scaler.transform(X)
     return pd.DataFrame(scaled_arr, index=X.index, columns=X.columns)
+
+
+def apply_smote(
+    X: pd.DataFrame,
+    y: pd.Series,
+    cfg: dict[str, Any],
+) -> tuple[pd.DataFrame, pd.Series, np.ndarray, dict[str, Any]]:
+    """Apply SMOTE oversampling to balance classes on the full dataset before splitting.
+
+    Paper Reference: Section 4.2.4 (Data Balancing) & Figure 6.
+    In Pipeline A, SMOTE balances the minority class (suspicious: 1,350) up to the majority
+    class (benign: 7,662) to produce exactly 15,324 accounts (7,662 benign, 7,662 suspicious).
+    Synthetic samples are appended after original samples, allowing transparent tracking.
+
+    Args:
+        X: Feature DataFrame (scaled, selected features).
+        y: Binary label Series (0 = benign, 1 = suspicious).
+        cfg: Configuration dictionary.
+
+    Returns:
+        tuple of (X_res, y_res, is_synthetic, report):
+            - X_res: Resampled feature DataFrame.
+            - y_res: Resampled binary label Series.
+            - is_synthetic: 1D boolean numpy array marking synthetic rows.
+            - report: Detailed balancing statistics and paper reference comparisons.
+    """
+    smote_cfg = cfg.get("smote", {})
+    k_neighbors = int(smote_cfg.get("k_neighbors", 5))
+    sampling_strategy = smote_cfg.get("sampling_strategy", "auto")
+    seed = int(cfg.get("seed", 42))
+
+    smote = SMOTE(
+        k_neighbors=k_neighbors,
+        sampling_strategy=sampling_strategy,
+        random_state=seed,
+    )
+
+    X_res, y_res = smote.fit_resample(X, y)
+
+    # In imblearn, original samples are preserved first; synthetic samples are appended.
+    n_orig = len(X)
+    n_res = len(X_res)
+    is_synthetic = np.zeros(n_res, dtype=bool)
+    is_synthetic[n_orig:] = True
+
+    class_counts_before = {int(k): int(v) for k, v in y.value_counts().items()}
+    class_counts_before.setdefault(0, 0)
+    class_counts_before.setdefault(1, 0)
+
+    class_counts_after = {int(k): int(v) for k, v in y_res.value_counts().items()}
+    class_counts_after.setdefault(0, 0)
+    class_counts_after.setdefault(1, 0)
+
+    paper_ref = cfg.get("paper_reference", {})
+    paper_comparison = {}
+    if "smote_rows" in paper_ref:
+        target_rows = int(paper_ref["smote_rows"])
+        paper_comparison["smote_rows"] = {
+            "paper": target_rows,
+            "actual": n_res,
+            "matches": bool(n_res == target_rows),
+            "delta": n_res - target_rows,
+        }
+
+    report = {
+        "rows_before": n_orig,
+        "rows_after": n_res,
+        "synthetic_rows_added": int(np.sum(is_synthetic)),
+        "class_counts_before": class_counts_before,
+        "class_counts_after": class_counts_after,
+        "paper_comparison": paper_comparison,
+    }
+
+    return X_res, y_res, is_synthetic, report
+
+
+def split_train_test(
+    X: pd.DataFrame,
+    y: pd.Series,
+    is_synthetic: np.ndarray,
+    cfg: dict[str, Any],
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, np.ndarray, np.ndarray, dict[str, Any]]:
+    """Split balanced dataset into training (80%) and testing (20%) sets.
+
+    Paper Reference: Section 4.2.5 (Data Splitting) & Section 5.
+    In Pipeline A, the 80/20 random split is applied unstratified with shuffling
+    over the 15,324 resampled accounts, yielding exactly 12,259 train and 3,065 test accounts.
+    Synthetic flags are preserved through the split to audit test set contamination.
+
+    Args:
+        X: Balanced feature DataFrame.
+        y: Balanced binary label Series.
+        is_synthetic: 1D boolean numpy array marking synthetic rows.
+        cfg: Configuration dictionary.
+
+    Returns:
+        tuple of (X_train, X_test, y_train, y_test, is_synthetic_train, is_synthetic_test, report):
+            - X_train: Training feature DataFrame (80%).
+            - X_test: Testing feature DataFrame (20%).
+            - y_train: Training binary label Series.
+            - y_test: Testing binary label Series.
+            - is_synthetic_train: Boolean array marking synthetic train rows.
+            - is_synthetic_test: Boolean array marking synthetic test rows.
+            - report: Detailed split counts and paper comparisons.
+    """
+    split_cfg = cfg.get("split", {})
+    test_size = float(split_cfg.get("test_size", 0.2))
+    shuffle = bool(split_cfg.get("shuffle", True))
+    stratify_opt = bool(split_cfg.get("stratify", False))
+    stratify = y if stratify_opt else None
+    seed = int(cfg.get("seed", 42))
+
+    X_train, X_test, y_train, y_test, is_synthetic_train, is_synthetic_test = train_test_split(
+        X,
+        y,
+        is_synthetic,
+        test_size=test_size,
+        random_state=seed,
+        shuffle=shuffle,
+        stratify=stratify,
+    )
+
+    train_class_counts = {int(k): int(v) for k, v in y_train.value_counts().items()}
+    train_class_counts.setdefault(0, 0)
+    train_class_counts.setdefault(1, 0)
+
+    test_class_counts = {int(k): int(v) for k, v in y_test.value_counts().items()}
+    test_class_counts.setdefault(0, 0)
+    test_class_counts.setdefault(1, 0)
+
+    paper_ref = cfg.get("paper_reference", {})
+    paper_comparison = {}
+    if "train" in paper_ref:
+        paper_comparison["train"] = {
+            "paper": int(paper_ref["train"]),
+            "actual": len(X_train),
+            "matches": bool(len(X_train) == int(paper_ref["train"])),
+            "delta": len(X_train) - int(paper_ref["train"]),
+        }
+    if "test" in paper_ref:
+        paper_comparison["test"] = {
+            "paper": int(paper_ref["test"]),
+            "actual": len(X_test),
+            "matches": bool(len(X_test) == int(paper_ref["test"])),
+            "delta": len(X_test) - int(paper_ref["test"]),
+        }
+    if "test_benign" in paper_ref:
+        paper_comparison["test_benign"] = {
+            "paper": int(paper_ref["test_benign"]),
+            "actual": test_class_counts[0],
+            "matches": bool(test_class_counts[0] == int(paper_ref["test_benign"])),
+            "delta": test_class_counts[0] - int(paper_ref["test_benign"]),
+        }
+    if "test_suspicious" in paper_ref:
+        paper_comparison["test_suspicious"] = {
+            "paper": int(paper_ref["test_suspicious"]),
+            "actual": test_class_counts[1],
+            "matches": bool(test_class_counts[1] == int(paper_ref["test_suspicious"])),
+            "delta": test_class_counts[1] - int(paper_ref["test_suspicious"]),
+        }
+
+    report = {
+        "train_rows": len(X_train),
+        "test_rows": len(X_test),
+        "train_class_counts": train_class_counts,
+        "test_class_counts": test_class_counts,
+        "synthetic_train_count": int(np.sum(is_synthetic_train)),
+        "synthetic_test_count": int(np.sum(is_synthetic_test)),
+        "synthetic_test_ratio": float(np.mean(is_synthetic_test)),
+        "paper_comparison": paper_comparison,
+    }
+
+    return X_train, X_test, y_train, y_test, is_synthetic_train, is_synthetic_test, report
 
 
 if __name__ == "__main__":

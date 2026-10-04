@@ -1,0 +1,678 @@
+{
+  "timestamp": "20261004_031101",
+  "config": {
+    "seed": 42,
+    "paths": {
+      "data_raw": "data/",
+      "results": "results/"
+    },
+    "data": {
+      "filename": "transaction_dataset.csv",
+      "label_column": "FLAG",
+      "suspicious_label": 1,
+      "id_columns": [
+        "Unnamed: 0",
+        "Index",
+        "Address"
+      ],
+      "categorical_columns": [
+        " ERC20 most sent token type",
+        " ERC20_most_rec_token_type"
+      ]
+    },
+    "cleaning": {
+      "policy": "drop_numeric_missing",
+      "deduplicate": false
+    },
+    "scaling": {
+      "method": "zscore"
+    },
+    "paper_reference": {
+      "rows": 9841,
+      "benign": 7663,
+      "suspicious": 2178,
+      "features_text": 49,
+      "features_table_a2": 45,
+      "cleaned_rows": 8990,
+      "cleaned_benign": 7662,
+      "cleaned_suspicious": 1328,
+      "dropped_rows": 851,
+      "smote_rows": 15324,
+      "train": 12259,
+      "test": 3065,
+      "test_benign": 1544,
+      "test_suspicious": 1521
+    },
+    "models": {
+      "xgboost": {
+        "objective": "binary:logistic",
+        "subsample": 1.0,
+        "defaults": {
+          "n_estimators": 100,
+          "gamma": 0.0,
+          "min_child_weight": 1,
+          "colsample_bytree": 1.0,
+          "max_depth": 6,
+          "reg_lambda": 1.0,
+          "learning_rate": 0.3
+        }
+      },
+      "svm": {
+        "kernel": "rbf",
+        "defaults": {
+          "C": 0.1,
+          "gamma": 0.1
+        }
+      },
+      "isolation_forest": {
+        "defaults": {
+          "contamination": 0.1,
+          "max_samples": 256,
+          "n_estimators": 100
+        }
+      }
+    },
+    "pso": {
+      "iterations": 50,
+      "inertia_decay": 0.99,
+      "swarm_size": 30,
+      "c1": 2.0,
+      "c2": 2.0,
+      "w_initial": 0.9,
+      "seg": 10,
+      "bounds": [
+        0.0,
+        1.0
+      ],
+      "select_threshold": 0.5,
+      "empty_subset_fitness": 1.0,
+      "fitness": {
+        "model": "decision_tree",
+        "cv_folds": 3,
+        "metric": "rmse_hard_labels"
+      },
+      "use_cache": true,
+      "table2_columns": [
+        "avg_min_between_received_tnx",
+        "time_diff_between_first_and_last_mins",
+        "sent_tnx",
+        "received_tnx",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "avg_val_sent",
+        "total_transactions_including_tnx_to_create_contract",
+        "total_erc20_tnxs",
+        "erc20_total_ether_sent",
+        "erc20_min_val_sent",
+        "erc20_max_val_sent",
+        "erc20_avg_val_sent"
+      ],
+      "table2_ambiguous": {
+        "Unique ERC20 Sent address": [
+          "erc20_uniq_sent_addr",
+          "erc20_uniq_sent_addr_1"
+        ]
+      }
+    },
+    "features": {
+      "table2_reference": [
+        "avg_min_between_received_tnx",
+        "time_diff_between_first_and_last_mins",
+        "sent_tnx",
+        "received_tnx",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "avg_val_sent",
+        "total_transactions_including_tnx_to_create_contract",
+        "total_erc20_tnxs",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_min_val_sent",
+        "erc20_max_val_sent",
+        "erc20_avg_val_sent"
+      ]
+    },
+    "smote": {
+      "k_neighbors": 5,
+      "sampling_strategy": "auto"
+    },
+    "split": {
+      "test_size": 0.2,
+      "shuffle": true,
+      "stratify": false
+    },
+    "ga": {
+      "population": 50,
+      "generations": 20
+    },
+    "paper_results": {
+      "default": {
+        "xgboost": {
+          "accuracy": 0.975,
+          "precision": 0.97,
+          "recall": 0.98,
+          "f1": 0.975,
+          "auc": 0.97
+        },
+        "svm": {
+          "accuracy": 0.744,
+          "precision": 0.826,
+          "recall": 0.713,
+          "f1": 0.765,
+          "auc": 0.71
+        },
+        "isolation_forest": {
+          "accuracy": 0.694,
+          "precision": 0.732,
+          "recall": 0.683,
+          "f1": 0.707,
+          "auc": 0.53
+        }
+      }
+    }
+  },
+  "library_versions": {
+    "scikit-learn": "1.9.1",
+    "xgboost": "3.4.1",
+    "imbalanced-learn": "0.14.2",
+    "numpy": "2.5.3",
+    "pandas": "3.0.6"
+  },
+  "paper_reference": {
+    "rows": 9841,
+    "benign": 7663,
+    "suspicious": 2178,
+    "features_text": 49,
+    "features_table_a2": 45,
+    "cleaned_rows": 8990,
+    "cleaned_benign": 7662,
+    "cleaned_suspicious": 1328,
+    "dropped_rows": 851,
+    "smote_rows": 15324,
+    "train": 12259,
+    "test": 3065,
+    "test_benign": 1544,
+    "test_suspicious": 1521
+  },
+  "results": {
+    "pso": {
+      "feature_count": 22,
+      "features": [
+        "avg_min_between_sent_tnx",
+        "time_diff_between_first_and_last_mins",
+        "number_of_created_contracts",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "min_val_sent",
+        "avg_val_sent",
+        "min_value_sent_to_contract",
+        "avg_value_sent_to_contract",
+        "total_ether_sent",
+        "total_ether_received",
+        "total_ether_sent_contracts",
+        "total_erc20_tnxs",
+        "erc20_total_ether_received",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_uniq_rec_contract_addr",
+        "erc20_avg_time_between_sent_tnx",
+        "erc20_avg_time_between_rec_tnx",
+        "erc20_max_val_sent_contract",
+        "erc20_uniq_rec_token_name",
+        "erc20_most_sent_token_type"
+      ],
+      "smote_report": {
+        "rows_before": 9012,
+        "rows_after": 15324,
+        "synthetic_rows_added": 6312,
+        "class_counts_before": {
+          "0": 7662,
+          "1": 1350
+        },
+        "class_counts_after": {
+          "0": 7662,
+          "1": 7662
+        },
+        "paper_comparison": {
+          "smote_rows": {
+            "paper": 15324,
+            "actual": 15324,
+            "matches": true,
+            "delta": 0
+          }
+        }
+      },
+      "split_report": {
+        "train_rows": 12259,
+        "test_rows": 3065,
+        "train_class_counts": {
+          "0": 6132,
+          "1": 6127
+        },
+        "test_class_counts": {
+          "1": 1535,
+          "0": 1530
+        },
+        "synthetic_train_count": 5067,
+        "synthetic_test_count": 1245,
+        "synthetic_test_ratio": 0.4061990212071778,
+        "paper_comparison": {
+          "train": {
+            "paper": 12259,
+            "actual": 12259,
+            "matches": true,
+            "delta": 0
+          },
+          "test": {
+            "paper": 3065,
+            "actual": 3065,
+            "matches": true,
+            "delta": 0
+          },
+          "test_benign": {
+            "paper": 1544,
+            "actual": 1530,
+            "matches": false,
+            "delta": -14
+          },
+          "test_suspicious": {
+            "paper": 1521,
+            "actual": 1535,
+            "matches": false,
+            "delta": 14
+          }
+        }
+      },
+      "models": {
+        "xgboost": {
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1529,
+                1
+              ],
+              [
+                9,
+                1526
+              ]
+            ],
+            "tn": 1529,
+            "fp": 1,
+            "fn": 9,
+            "tp": 1526,
+            "accuracy": 0.9967373572593801,
+            "mae": 0.0032626427406199023,
+            "precision": 0.9993451211525868,
+            "recall": 0.9941368078175896,
+            "f1": 0.9967341606792947,
+            "precision_benign": 0.994148244473342,
+            "recall_benign": 0.9993464052287582,
+            "f1_benign": 0.9967405475880052,
+            "macro_precision": 0.9967466828129644,
+            "macro_recall": 0.9967416065231739,
+            "macro_f1": 0.9967373541336499,
+            "mcc": 0.9934882893231695,
+            "roc_auc": 0.9999467756700943,
+            "pr_auc": 0.9999474405480961
+          },
+          "deltas_to_paper": {
+            "accuracy": 0.021737357259380086,
+            "precision": 0.029345121152586806,
+            "recall": 0.014136807817589636,
+            "f1": 0.02173416067929468,
+            "auc": 0.029946775670094294
+          },
+          "fit_predict_time_seconds": 0.19128084182739258
+        },
+        "svm": {
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1416,
+                114
+              ],
+              [
+                77,
+                1458
+              ]
+            ],
+            "tn": 1416,
+            "fp": 114,
+            "fn": 77,
+            "tp": 1458,
+            "accuracy": 0.9376835236541599,
+            "mae": 0.06231647634584013,
+            "precision": 0.9274809160305344,
+            "recall": 0.9498371335504886,
+            "f1": 0.9385259092372062,
+            "precision_benign": 0.9484259879437374,
+            "recall_benign": 0.9254901960784314,
+            "f1_benign": 0.9368177307310619,
+            "macro_precision": 0.937953451987136,
+            "macro_recall": 0.9376636648144601,
+            "macro_f1": 0.9376718199841341,
+            "mcc": 0.8756170688487828,
+            "roc_auc": 0.9697839092205829,
+            "pr_auc": 0.9257377182188269
+          },
+          "deltas_to_paper": {
+            "accuracy": 0.19368352365415986,
+            "precision": 0.10148091603053444,
+            "recall": 0.23683713355048863,
+            "f1": 0.17352590923720623,
+            "auc": 0.2597839092205829
+          },
+          "fit_predict_time_seconds": 1.2267677783966064
+        },
+        "isolation_forest": {
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1271,
+                259
+              ],
+              [
+                1459,
+                76
+              ]
+            ],
+            "tn": 1271,
+            "fp": 259,
+            "fn": 1459,
+            "tp": 76,
+            "accuracy": 0.43947797716150083,
+            "mae": 0.5605220228384992,
+            "precision": 0.22686567164179106,
+            "recall": 0.049511400651465795,
+            "f1": 0.08128342245989303,
+            "precision_benign": 0.4655677655677656,
+            "recall_benign": 0.8307189542483661,
+            "f1_benign": 0.5967136150234742,
+            "macro_precision": 0.3462167186047783,
+            "macro_recall": 0.4401151774499159,
+            "macro_f1": 0.33899851874168363,
+            "mcc": -0.19193003430961503,
+            "roc_auc": 0.18689233782546677,
+            "pr_auc": 0.3564892766535124
+          },
+          "deltas_to_paper": {
+            "accuracy": -0.2545220228384991,
+            "precision": -0.5051343283582089,
+            "recall": -0.6334885993485343,
+            "f1": -0.6257165775401069,
+            "auc": -0.34310766217453326
+          },
+          "fit_predict_time_seconds": 0.10143208503723145
+        }
+      },
+      "consistency_checks": [
+        {
+          "name": "class_totals_consistent_across_models",
+          "passed": true,
+          "detail": "All 3 models evaluated on identical class totals: positive=1535, negative=1530"
+        },
+        {
+          "name": "accuracy_recomputed_matches_reported",
+          "passed": true,
+          "detail": "All models have recomputed accuracy matching reported accuracy within tolerance 0.001."
+        }
+      ]
+    },
+    "table2": {
+      "feature_count": 14,
+      "features": [
+        "avg_min_between_received_tnx",
+        "time_diff_between_first_and_last_mins",
+        "sent_tnx",
+        "received_tnx",
+        "unique_received_from_addresses",
+        "unique_sent_to_addresses",
+        "avg_val_sent",
+        "total_transactions_including_tnx_to_create_contract",
+        "total_erc20_tnxs",
+        "erc20_total_ether_sent",
+        "erc20_uniq_sent_addr",
+        "erc20_min_val_sent",
+        "erc20_max_val_sent",
+        "erc20_avg_val_sent"
+      ],
+      "smote_report": {
+        "rows_before": 9012,
+        "rows_after": 15324,
+        "synthetic_rows_added": 6312,
+        "class_counts_before": {
+          "0": 7662,
+          "1": 1350
+        },
+        "class_counts_after": {
+          "0": 7662,
+          "1": 7662
+        },
+        "paper_comparison": {
+          "smote_rows": {
+            "paper": 15324,
+            "actual": 15324,
+            "matches": true,
+            "delta": 0
+          }
+        }
+      },
+      "split_report": {
+        "train_rows": 12259,
+        "test_rows": 3065,
+        "train_class_counts": {
+          "0": 6132,
+          "1": 6127
+        },
+        "test_class_counts": {
+          "1": 1535,
+          "0": 1530
+        },
+        "synthetic_train_count": 5067,
+        "synthetic_test_count": 1245,
+        "synthetic_test_ratio": 0.4061990212071778,
+        "paper_comparison": {
+          "train": {
+            "paper": 12259,
+            "actual": 12259,
+            "matches": true,
+            "delta": 0
+          },
+          "test": {
+            "paper": 3065,
+            "actual": 3065,
+            "matches": true,
+            "delta": 0
+          },
+          "test_benign": {
+            "paper": 1544,
+            "actual": 1530,
+            "matches": false,
+            "delta": -14
+          },
+          "test_suspicious": {
+            "paper": 1521,
+            "actual": 1535,
+            "matches": false,
+            "delta": 14
+          }
+        }
+      },
+      "models": {
+        "xgboost": {
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1512,
+                18
+              ],
+              [
+                14,
+                1521
+              ]
+            ],
+            "tn": 1512,
+            "fp": 18,
+            "fn": 14,
+            "tp": 1521,
+            "accuracy": 0.9895595432300163,
+            "mae": 0.010440456769983687,
+            "precision": 0.9883040935672515,
+            "recall": 0.9908794788273616,
+            "f1": 0.9895901106050748,
+            "precision_benign": 0.9908256880733946,
+            "recall_benign": 0.9882352941176471,
+            "f1_benign": 0.9895287958115184,
+            "macro_precision": 0.989564890820323,
+            "macro_recall": 0.9895573864725044,
+            "macro_f1": 0.9895594532082966,
+            "mcc": 0.9791222772640693,
+            "roc_auc": 0.9992335696493583,
+            "pr_auc": 0.9992011825064047
+          },
+          "deltas_to_paper": {
+            "accuracy": 0.014559543230016292,
+            "precision": 0.01830409356725149,
+            "recall": 0.010879478827361622,
+            "f1": 0.014590110605074869,
+            "auc": 0.029233569649358304
+          },
+          "fit_predict_time_seconds": 0.15499615669250488
+        },
+        "svm": {
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                744,
+                786
+              ],
+              [
+                132,
+                1403
+              ]
+            ],
+            "tn": 744,
+            "fp": 786,
+            "fn": 132,
+            "tp": 1403,
+            "accuracy": 0.700489396411093,
+            "mae": 0.299510603588907,
+            "precision": 0.6409319323892189,
+            "recall": 0.9140065146579804,
+            "f1": 0.7534908700322235,
+            "precision_benign": 0.8493150684931506,
+            "recall_benign": 0.48627450980392156,
+            "f1_benign": 0.6184538653366584,
+            "macro_precision": 0.7451235004411847,
+            "macro_recall": 0.700140512230951,
+            "macro_f1": 0.6859723676844409,
+            "mcc": 0.4429859724106056,
+            "roc_auc": 0.8208264673947754,
+            "pr_auc": 0.8037221674421239
+          },
+          "deltas_to_paper": {
+            "accuracy": -0.043510603588907015,
+            "precision": -0.1850680676107811,
+            "recall": 0.20100651465798047,
+            "f1": -0.011509129967776532,
+            "auc": 0.11082646739477542
+          },
+          "fit_predict_time_seconds": 3.2746052742004395
+        },
+        "isolation_forest": {
+          "metrics": {
+            "n_test": 3065,
+            "class_counts": {
+              "0": 1530,
+              "1": 1535
+            },
+            "confusion_matrix": [
+              [
+                1298,
+                232
+              ],
+              [
+                1451,
+                84
+              ]
+            ],
+            "tn": 1298,
+            "fp": 232,
+            "fn": 1451,
+            "tp": 84,
+            "accuracy": 0.4508972267536705,
+            "mae": 0.5491027732463295,
+            "precision": 0.26582278481012656,
+            "recall": 0.05472312703583062,
+            "f1": 0.09076175040518639,
+            "precision_benign": 0.4721716987995635,
+            "recall_benign": 0.8483660130718954,
+            "f1_benign": 0.6066838046272494,
+            "macro_precision": 0.36899724180484506,
+            "macro_recall": 0.451544570053863,
+            "macro_f1": 0.3487227775162179,
+            "mcc": -0.15934610095607676,
+            "roc_auc": 0.3223342062123438,
+            "pr_auc": 0.3957778710077364
+          },
+          "deltas_to_paper": {
+            "accuracy": -0.24310277324632945,
+            "precision": -0.46617721518987343,
+            "recall": -0.6282768729641695,
+            "f1": -0.6162382495948135,
+            "auc": -0.2076657937876562
+          },
+          "fit_predict_time_seconds": 0.09349822998046875
+        }
+      },
+      "consistency_checks": [
+        {
+          "name": "class_totals_consistent_across_models",
+          "passed": true,
+          "detail": "All 3 models evaluated on identical class totals: positive=1535, negative=1530"
+        },
+        {
+          "name": "accuracy_recomputed_matches_reported",
+          "passed": true,
+          "detail": "All models have recomputed accuracy matching reported accuracy within tolerance 0.001."
+        }
+      ]
+    }
+  },
+  "timings_seconds": {
+    "pso_data_prep": 0.07623004913330078,
+    "pso_xgboost_fit_predict": 0.19128084182739258,
+    "pso_svm_fit_predict": 1.2267677783966064,
+    "pso_isolation_forest_fit_predict": 0.10143208503723145,
+    "table2_data_prep": 0.058501243591308594,
+    "table2_xgboost_fit_predict": 0.15499615669250488,
+    "table2_svm_fit_predict": 3.2746052742004395,
+    "table2_isolation_forest_fit_predict": 0.09349822998046875,
+    "total": 5.198935031890869
+  }
+}

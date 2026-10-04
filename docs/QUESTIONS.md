@@ -54,4 +54,17 @@
     - Candidate 2 (`erc20_uniq_sent_addr_1`): 14-feature RMSE = 0.1920.
     - 13 unambiguous features alone: RMSE = 0.1932.
   - In our PSO execution (seed 42), the algorithm selected Candidate 1 (`erc20_uniq_sent_addr`) and did not select Candidate 2, yielding 7 of 14 features matching Table 2 when Candidate 1 is considered.
+  - In Phase 1.5, `features.table2_reference` adopted Candidate 1 (`erc20_uniq_sent_addr`) because Table A2 row "Unique ERC20 Sent Address" (the table has exactly one such row and no ".1" duplicate), while the Kaggle CSV contains a `.1` duplicate.
 
+## Phase 1.5: Paper's Test Set Class Split (1,544 Benign vs 1,521 Suspicious)
+
+- **Context:**
+  - After SMOTE balances the 9,012 cleaned dataset to exactly 15,324 rows (7,662 benign, 7,662 suspicious), an 80/20 train/test split yields exactly 12,259 train and 3,065 test rows.
+  - The paper reports 1,544 benign and 1,521 suspicious accounts in the test set.
+  - A stratified split would yield 1,532 / 1,533 or 1,533 / 1,532.
+  - An unstratified random split (`seed=42`) produces 1,530 benign and 1,535 suspicious accounts ($\Delta = -14$ benign, $+14$ suspicious).
+- **Status / Resolution:**
+  - The $\pm 14$ difference confirms that the paper used an unstratified random split (or a specific random seed), as any exact stratified split would be 50/50.
+  - We preserve standard unstratified splitting (`split.stratify: false`, `seed: 42`) without forcing or hardcoding the test indices.
+- **Question:**
+  - Isolation Forest AUC is below 0.5 (0.1869 on the 22 PSO features, 0.3223 on the Table 2 features): our anomaly scores (-score_samples) rank benign accounts above suspicious ones. The score sign was verified in tests (phase 1.3), so this is a data property, not a sign bug. The anomaly-to-suspicious mapping is left unchanged because flipping it after seeing test results would be tuning on the test set. To be examined in Phase 3.5 (Isolation Forest as an anomaly scorer).
