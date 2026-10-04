@@ -113,8 +113,56 @@ split:
   shuffle: true
   stratify: false
 ga:
-  population: 50    # paper 4.3
-  generations: 20
+  population: 50        # paper 4.3
+  generations: 20       # paper 4.3
+  cxpb: 0.5             # assumption: DEAP tutorial default, not in paper
+  mutpb: 0.2            # assumption: DEAP tutorial default, not in paper
+  indpb: 0.2            # assumption: gene-level mutation probability
+  sigma_fraction: 0.1   # assumption: Gaussian mutation sigma is 10% of gene range
+  blend_alpha: 0.5      # assumption: cxBlend alpha parameter
+  cv_folds: 3           # assumption: 3-fold stratified CV on train split
+  metric: "accuracy"    # paper 4.3
+  use_cache: true
+  search_spaces:
+    xgboost:
+      - name: n_estimators
+        type: int
+        bounds: [10, 300]
+      - name: gamma
+        type: float
+        bounds: [0.0, 5.0]
+      - name: min_child_weight
+        type: float
+        bounds: [1.0, 10.0]
+      - name: colsample_bytree
+        type: float
+        bounds: [0.3, 1.0]
+      - name: max_depth
+        type: int
+        bounds: [3, 10]
+      - name: reg_lambda
+        type: float
+        bounds: [0.0, 10.0]
+      - name: learning_rate
+        type: float
+        bounds: [0.01, 1.0]
+    svm:
+      - name: C
+        type: log10_float
+        bounds: [-2.0, 2.0]
+      - name: gamma
+        type: log10_float
+        bounds: [-3.0, 1.30103]
+    isolation_forest:
+      - name: contamination
+        type: float
+        bounds: [0.01, 0.5]
+      - name: max_samples
+        type: int
+        bounds: [64, 2048]
+      - name: n_estimators
+        type: int
+        bounds: [50, 300]
 paper_results:
   default:   # Table 8 (without GA, test N=3065)
     xgboost:
@@ -135,4 +183,42 @@ paper_results:
       recall: 0.683
       f1: 0.707
       auc: 0.53
+  ga_params:   # Tables 5-7 (tuned hyperparameters from paper)
+    xgboost:   # Table 5
+      n_estimators: 79
+      gamma: 0.28
+      min_child_weight: 1.94
+      colsample_bytree: 0.58
+      max_depth: 5
+      reg_lambda: 0.77
+      learning_rate: 0.55
+    svm:       # Table 6
+      C: 10.92
+      gamma: 13.262
+    isolation_forest: # Table 7
+      contamination: 0.3
+      max_samples: 1000
+      n_estimators: 89
+  ga:          # Table 9 (evaluation metrics after GA tuning, test N=3065)
+    xgboost:
+      accuracy: 0.992
+      precision: 0.992
+      recall: 0.993
+      f1: 0.992
+      auc: 0.99
+      mae: 0.01
+    svm:
+      accuracy: 0.87
+      precision: 0.869
+      recall: 0.872
+      f1: 0.87
+      auc: 0.86
+      mae: 0.13
+    isolation_forest:
+      accuracy: 0.824
+      precision: 0.824
+      recall: 0.827
+      f1: 0.825
+      auc: 0.79
+      mae: 0.18
 

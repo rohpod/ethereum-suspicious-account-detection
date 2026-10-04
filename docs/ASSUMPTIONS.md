@@ -56,4 +56,21 @@ Every value the paper does not specify, or any deviation from it, is logged here
 | side-by-side feature sets | Both PSO-selected (22) and Table 2 reference (14) feature sets evaluated | Tests whether paper Table 8 baselines were evaluated on Table 2 features or independent PSO run | not specified in paper |
 | Table 2 reference feature resolution | erc20_uniq_sent_addr selected for 14th feature | Table A2 lists only one Unique ERC20 Sent Address feature without the Kaggle CSV's '.1' duplicate; also selected by PSO | Table A2, Table 2 |
 | Isolation Forest training scope | Unsupervised fit on X_train only with labels ignored; predicts on X_test | Standard unsupervised anomaly detection; contamination=0.1 from Table 6 | Section 4.3, Table 6 |
+| GA population size | 50 | Pinned from text: "population size of 50" | Section 4.3, Algorithm 2 |
+| GA generation count | 20 | Pinned from text and Table 4: "over 20 generations" | Section 4.3, Table 4 |
+| GA replacement semantics | DEAP eaSimple generational replacement | Algorithm 2 line 8 states "Population = parents + Mutation", but Table 4's N_evals (20-38/gen, 616 total) is consistent with eaSimple (which re-evaluates only changed individuals, no caching), not population doubling | Section 4.3, Algorithm 2, Table 4 |
+| GA crossover probability cxpb | 0.5 | DEAP tutorial default; crossover rate not specified in paper | not specified in paper |
+| GA mutation probability mutpb | 0.2 | DEAP tutorial default; mutation rate not specified in paper | not specified in paper |
+| GA gene mutation probability indpb | 0.2 | Gene-level probability of Gaussian mutation; not specified in paper | not specified in paper |
+| GA Gaussian mutation sigma | 10% of gene search range (sigma_fraction=0.1) | Proportional step size for Gaussian perturbation; not specified in paper | not specified in paper |
+| GA crossover operator | cxBlend (alpha=0.5) with bounds clipping | Blend crossover for continuous chromosome; not specified in paper | not specified in paper |
+| GA selection operator | Roulette-wheel selection (tools.selRoulette) | Section 4.3 explicitly specifies roulette selection; requires strictly positive fitness (> 0) | Section 4.3 |
+| GA fitness definition | Stratified 3-fold CV mean accuracy on TRAIN split only | Evaluated on 12,259 train samples; test split strictly excluded to avoid validation leakage | Section 4.3, Section 5 |
+| Isolation Forest GA fitness | Unsupervised fit on train folds (labels ignored), evaluated against labels | IF is unsupervised but tuned via supervised accuracy metric per paper Section 3 item 9 | Section 3 Item 9, Section 4.3 |
+| XGBoost GA search bounds | n_estimators [10,300], gamma [0,5], min_child_weight [1,10], colsample_bytree [0.3,1.0], max_depth [3,10], reg_lambda [0,10], learning_rate [0.01,1.0]; subsample=1.0 | Search space bounds not given in text; bounds chosen to contain paper Table 5 tuned values | Table 1, Table 5 |
+| SVM GA search bounds | Log10-scaled genes: C in [-2, 2] (0.01 to 100), gamma in [-3, 1.301] (0.001 to 20); decoded as 10**gene; kernel='rbf' | Logarithmic scaling covers wide magnitude range; bounds chosen to contain paper Table 6 tuned values | Table 1, Table 6 |
+| Isolation Forest GA search bounds | contamination [0.01, 0.5], max_samples [64, 2048], n_estimators [50, 300] | Bounds chosen to contain paper Table 7 tuned values (contamination=0.3, max_samples=1000, n_estimators=89) | Table 1, Table 7 |
+| GA integer gene decoding | Round to nearest integer within search bounds | Applies to discrete hyperparameters (n_estimators, max_depth, max_samples) | not specified in paper |
+| GA feature set scope | PSO selected features (22 features) by default | Pipeline A applies GA to features selected by PSO (Algorithm 6 Step 5) | Algorithm 6 |
+| GA result caching | results/cache/ga_pipeline_a_<model>_<featureset>.json keyed by SHA-256 of config + search space + data shape + columns + seed + versions | Deterministic caching with console notification and --force bypass | not specified in paper |
 

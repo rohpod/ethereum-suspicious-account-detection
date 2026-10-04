@@ -68,3 +68,18 @@
   - We preserve standard unstratified splitting (`split.stratify: false`, `seed: 42`) without forcing or hardcoding the test indices.
 - **Question:**
   - Isolation Forest AUC is below 0.5 (0.1869 on the 22 PSO features, 0.3223 on the Table 2 features): our anomaly scores (-score_samples) rank benign accounts above suspicious ones. The score sign was verified in tests (phase 1.3), so this is a data property, not a sign bug. The anomaly-to-suspicious mapping is left unchanged because flipping it after seeing test results would be tuning on the test set. To be examined in Phase 3.5 (Isolation Forest as an anomaly scorer).
+
+## Phase 1.6: Isolation Forest GA Convergence to Minimal Contamination
+
+- **Context:**
+  - In Phase 1.6, GA tuned Isolation Forest with an objective of maximizing 3-fold CV accuracy on the balanced training set (6,132 benign, 6,127 suspicious).
+  - The GA converged to `contamination=0.01`, `max_samples=64`, `n_estimators=300`, achieving 0.49474 CV accuracy and 0.48972 test accuracy.
+  - Paper Table 7 reports GA tuned `contamination=0.3`, achieving 0.824 accuracy.
+- **Status / Open Question:**
+  - Because Isolation Forest fits unsupervised without access to ground truth labels, predicting nearly all samples as inliers (`contamination=0.01`) maximizes accuracy on a balanced dataset at approximately 50%.
+  - How did the authors achieve 0.824 accuracy with `contamination=0.3`?
+    1. Was GA tuning conducted on the original imbalanced data (where predicting inliers yields ~85% accuracy)?
+    2. Was a different fitness metric used (e.g., F1, AUC, or anomaly threshold calibration)?
+    3. Was the polarity of anomalies inverted?
+  - Phase 3.5 should test the opposite IF orientation using TRAIN-only CV, never the test set.
+
