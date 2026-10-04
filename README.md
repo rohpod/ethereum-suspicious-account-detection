@@ -4,20 +4,22 @@ Reproduction, benchmark and extension of El-Attar et al., *"An Optimized Framewo
 
 To our knowledge, no open-source implementation of the complete framework exists. This is a replication, not a new method.
 
-**Status:** work in progress.
+**Status:** Phase 1 complete (Pipeline A benchmark); Phase 2 not started.
 
 ## Results
 
 | Model | Stage | Paper | Pipeline A (replication) | Pipeline B (leakage-safe) | Optimised |
 |---|---|---|---|---|---|
-| XGBoost | default | 0.975 | not yet run | not yet run | not yet run |
-| XGBoost | GA | 0.992 | not yet run | not yet run | not yet run |
-| SVM | default | 0.744 | not yet run | not yet run | not yet run |
-| SVM | GA | 0.87 | not yet run | not yet run | not yet run |
-| Isolation Forest | default | 0.694 | not yet run | not yet run | not yet run |
-| Isolation Forest | GA | 0.824 | not yet run | not yet run | not yet run |
+| XGBoost | default | 0.975 | 0.9967 | not yet run | not yet run |
+| XGBoost | GA | 0.992 | 0.9971 | not yet run | not yet run |
+| SVM | default | 0.744 | 0.9377 | not yet run | not yet run |
+| SVM | GA | 0.87 | 0.9883 | not yet run | not yet run |
+| Isolation Forest | default | 0.694 | 0.4395 | not yet run | not yet run |
+| Isolation Forest | GA | 0.824 | 0.4897 | not yet run | not yet run |
 
-Accuracy shown. Every number here comes from a file in `results/`.
+Test accuracy shown on the 22 PSO-selected features. Source: `results/phase1_8_benchmark_20261004_044733.json` (and `.md`).
+- **Data leakage / synthetic contamination:** Under the paper's literal pipeline order (SMOTE applied to the entire dataset before splitting), the Pipeline A test set contains 1,245 synthetic accounts out of 3,065 total test accounts (**40.62% synthetic rows**).
+- **Below-chance anomaly detection:** Isolation Forest achieves test accuracy of 0.4395 (default) and 0.4897 (GA), which is below chance; its ROC-AUC is well below 0.5 (0.1869 default, 0.2289 GA), indicating an inverted anomaly ranking on this feature distribution.
 
 ## Setup
 
@@ -33,11 +35,46 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Data:** not included. Download the Kaggle dataset linked in the paper's Data Availability Statement (see `docs/ASSUMPTIONS.md` for status and licence notes) into `data/`.
+**Data:** not included. Place the dataset at `data/transaction_dataset.csv`. Download the Kaggle dataset linked in the paper's Data Availability Statement (see `docs/ASSUMPTIONS.md` for status and licence notes).
 
 ## Reproduction
 
-Not yet available. Steps will be added as each phase lands. All seeds, paths and budgets live in `config/config.yaml`.
+Execute the 10-step reproduction sequence in order:
+
+```bash
+# 1. Validate dataset shape, feature columns, and missingness (~0.09s)
+python -m src.data
+
+# 2. Clean numeric NaNs and apply z-score standardisation (~0.09s)
+python -m src.preprocess
+
+# 3. Verify paper confusion matrices and metrics formulas (~0.003s)
+python -m src.evaluate
+
+# 4. Run Particle Swarm Optimization feature selection (~39.9s uncached; cached in results/cache/pso_pipeline_a.json)
+python -m src.pso
+
+# 5. Execute Pipeline A SMOTE, 80/20 split, and evaluate default models (~5.2s)
+python -m src.pipeline_a
+
+# 6. GA hyperparameter tuning for XGBoost (~212.9s / ~3.5 min; cached in results/cache/ga_pipeline_a_xgboost_pso.json)
+python -m src.ga --model xgboost
+
+# 7. GA hyperparameter tuning for Isolation Forest (~364.7s / ~6.1 min; cached in results/cache/ga_pipeline_a_isolation_forest_pso.json)
+python -m src.ga --model isolation_forest
+
+# 8. GA hyperparameter tuning for SVM (~1366.3s / ~22.8 min; cached in results/cache/ga_pipeline_a_svm_pso.json)
+python -m src.ga --model svm
+
+# 9. Evaluate CART and LOF comparison baselines (~3.8s)
+python -m src.baselines
+
+# 10. Generate master benchmark table and cross-model checks (~0.08s)
+python -m src.benchmark
+```
+
+- **Caching:** PSO and GA results are cached in `results/cache/` keyed by a deterministic configuration/data SHA-256 hash and reused only on a matching hash (pass `--force` to recompute).
+- **Tests:** Run unit tests with `pytest -q`. `RUN_SLOW_TESTS=1 pytest -q` runs the slow real-data test.
 
 ## Repo map
 

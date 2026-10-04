@@ -210,7 +210,7 @@
   - Test set diagnostics: 3,065 test rows (1,530 benign, 1,535 suspicious); 1,245 synthetic accounts (40.62% contamination); always-benign baseline accuracy = 0.49918.
   - Cross-model consistency checks: Passed across all 13 test evaluations without discrepancy.
 - **Audit of PLAN.md Section 3 Paper Inconsistencies (Phase 1 Status):**
-  1. **SMOTE contradiction** (Section 5 says SMOTE on training folds only, but counts 15,324 and 12,259/3,065 split imply SMOTE before split): **CONFIRMED** in Phase 1.5. Applying SMOTE before split reproduces 15,324 total, 12,259 train, 3,065 test, and 1,530/1,535 test balance. Contaminates test set with 1,245 synthetic accounts (40.62%). **Needs Pipeline B (Phase 2.0)** to measure clean performance.
+  1. **SMOTE contradiction** (Section 5 says SMOTE on training folds only, but counts 15,324 and 12,259/3,065 split imply SMOTE before split): **reproducible: counts match exactly with SMOTE before the split (consistent with item 1); the authors' protocol is an inference; needs Pipeline B (Phase 2.0)**. Contaminates test set with 1,245 synthetic accounts (40.62%).
   2. **Leakage order** (Scaling, PSO on whole dataset, and SMOTE all precede split): **CONFIRMED** in Phase 1.2, 1.4, 1.5. Paper Algorithm 6 explicitly places split as Step 4 after feature selection and SMOTE. **Needs Pipeline B (Phase 2.0)** for leakage-safe execution.
   3. **Cleaning removes mostly suspicious accounts** (2,178 -> 1,328 suspicious vs 7,663 -> 7,662 benign): **CONFIRMED** in Phase 1.1 and 1.2. Dropping numeric NaNs drops 829 suspicious and 0 benign accounts. Missingness is 100% label-linked in numeric ERC20 features.
   4. **Class counts differ** between 4.1 (7,663/2,178) and 4.2.4 (7,662/1,328): **CONFIRMED** in Phase 1.1 and 1.2. 7,662/1,328 is post-cleaning. Raw CSV is 7,662/2,179; post-cleaning is 7,662/1,350 (unexplained 22-row gap).
@@ -229,3 +229,9 @@
   3. **Table 4 GA Fitness Scale**: 0.878 -> 0.918 matches none of the models (XGBoost 0.995, SVM 0.986, IF 0.49).
   4. **Post-Cleaning Suspicious Count**: Dropping all numeric NaNs yields 1,350 suspicious accounts remaining (829 dropped) vs paper reported 1,328 (851 dropped), leaving an unexplained 22-row gap.
   5. **Table 10 Arithmetic**: CART MAE reported 0.22 vs $1 - 0.810 = 0.190$; LOF MAE reported 0.06 vs $1 - 0.949 = 0.051$.
+- **Known minor deviations (deferred):**
+  - Hardcoded literals in `src/ga.py` (probe budget 4x1, 30-minute threshold).
+  - Hardcoded literal in `src/evaluate.py` (accuracy tolerance 1e-3).
+  - Hardcoded literal in `src/benchmark.py` (expected_n_test 3065).
+  - Hardcoded literals in `src/pso.py` (paper_reported_rmse, paper_feature_count in the summary payload).
+  - To move to config when those files are next touched.
