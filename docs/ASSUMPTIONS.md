@@ -48,3 +48,12 @@ Every value the paper does not specify, or any deviation from it, is logged here
 | PSO dimension loop | Algorithm 1 line 9 ('For d = 1 to iteration') read as loop over feature dimensions d = 1..D | Dimension update loop; reading as iterations would create quadratic nesting | Algorithm 1 |
 | PSO execution scope (Pipeline A) | Executed on all 9,012 cleaned and scaled accounts before SMOTE and split | Follows Algorithm 6 Step 2 ("feature selection using the PSO algorithm on the whole dataset") | Algorithm 6, Section 4.2 |
 | PSO result caching | results/cache/pso_pipeline_a.json keyed by SHA-256 of config + data shape + columns + seed | Deterministic caching with console notification and --force bypass | not specified in paper |
+| SMOTE k-neighbors | 5 | Default k_neighbors in imbalanced-learn; Section 4.2.4 names SMOTE but specifies no k-neighbors | not specified in paper |
+| SMOTE sampling strategy | "auto" (ratio 1.0, balance minority to majority) | Section 4.2.4 states "creating 7662 samples for both benign and suspicious accounts", resulting in 15,324 rows | Section 4.2.4 |
+| SMOTE execution timing (Pipeline A) | Applied to entire dataset of selected features before train/test split | Paper Section 4.2.4 & Figure 6 order: cleaning -> z-score -> PSO -> SMOTE -> split -> models | Section 4.2.4, Figure 6 |
+| synthetic sample tracking | Boolean is_synthetic mask tracked through SMOTE and split | Allows measurement of synthetic test set contamination without altering feature arrays | not specified in paper |
+| train/test split ratio & stratification | 80/20 train/test split (test_size=0.2, shuffle=True, stratify=None) | Unstratified random split yields exactly 12,259 train and 3,065 test rows; test class split 1,530 / 1,535 is within 14 of paper's 1,544 / 1,521 | Section 4.2.5, Section 5 |
+| side-by-side feature sets | Both PSO-selected (22) and Table 2 reference (14) feature sets evaluated | Tests whether paper Table 8 baselines were evaluated on Table 2 features or independent PSO run | not specified in paper |
+| Table 2 reference feature resolution | erc20_uniq_sent_addr selected for 14th feature | Table A2 lists only one Unique ERC20 Sent Address feature without the Kaggle CSV's '.1' duplicate; also selected by PSO | Table A2, Table 2 |
+| Isolation Forest training scope | Unsupervised fit on X_train only with labels ignored; predicts on X_test | Standard unsupervised anomaly detection; contamination=0.1 from Table 6 | Section 4.3, Table 6 |
+
