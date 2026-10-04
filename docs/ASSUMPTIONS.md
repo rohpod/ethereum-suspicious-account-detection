@@ -73,4 +73,11 @@ Every value the paper does not specify, or any deviation from it, is logged here
 | GA integer gene decoding | Round to nearest integer within search bounds | Applies to discrete hyperparameters (n_estimators, max_depth, max_samples) | not specified in paper |
 | GA feature set scope | PSO selected features (22 features) by default | Pipeline A applies GA to features selected by PSO (Algorithm 6 Step 5) | Algorithm 6 |
 | GA result caching | results/cache/ga_pipeline_a_<model>_<featureset>.json keyed by SHA-256 of config + search space + data shape + columns + seed + versions | Deterministic caching with console notification and --force bypass | not specified in paper |
+| CART default hyperparameters | criterion="gini", max_depth=None, min_samples_split=2, min_samples_leaf=1, random_state=42 | Scikit-learn defaults; Saxena et al. [14] CART hyperparameters not specified in paper | Table 10, not specified in paper |
+| LOF default hyperparameters | n_neighbors=20, contamination="auto", novelty=True | Scikit-learn defaults; Fangfang et al. [12] LOF hyperparameters not specified in paper; novelty=True required for test evaluation | Table 10, not specified in paper |
+| LOF unsupervised training scope | Unsupervised fit on X_train only with labels ignored; predicts on X_test | Standard unsupervised anomaly detection; labels ignored during fit | Table 10, not specified in paper |
+| LOF risk score orientation | -score_samples(X_test) (higher = more anomalous/suspicious) | Scikit-learn score_samples produces negative values where lower indicates anomalies; negating aligns scores with suspiciousness for AUC-ROC | not specified in paper |
+| baseline feature sets scope | Both PSO-selected (22) and Table 2 (14) evaluated for CART and LOF | Tests whether baselines were evaluated on the paper's selected features or reference set | not specified in paper |
+| Table 10 default XGBoost reuse | Reused from Phase 1.5 default XGBoost without retraining | Alarab et al. [16] XGBoost metrics in Table 10 match paper's own default XGBoost in Table 8 | Table 8, Table 10 |
+| Table 10 attribution | Attributed to external works ([12], [14], [16]) | Paper Table 10 references external literature for baseline comparison methods | Table 10, Section 5 |
 
