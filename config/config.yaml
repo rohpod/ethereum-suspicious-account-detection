@@ -278,4 +278,12 @@ paper_results:
       auc: 0.97
       std_of_accuracy: 0.107
 
+pipeline_b:
+  pso:
+    fitness:
+      smote_in_fold: true
+  split:
+    stratify: true
+
+
 

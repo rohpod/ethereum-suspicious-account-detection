@@ -81,4 +81,9 @@ Every value the paper does not specify, or any deviation from it, is logged here
 | baseline feature sets scope | Both PSO-selected (22) and Table 2 (14) evaluated for CART and LOF | Tests whether baselines were evaluated on the paper's selected features or reference set | not specified in paper |
 | Table 10 default XGBoost reuse | Reused from Phase 1.5 default XGBoost without retraining | Alarab et al. [16] XGBoost metrics in Table 10 match paper's own default XGBoost in Table 8 | Table 8, Table 10 |
 | Table 10 attribution | Attributed to external works ([12], [14], [16]) | Paper Table 10 references external literature for baseline comparison methods | Table 10, Section 5 |
+| PSO fitness on B | RMSE on hard labels with SMOTE inside inner folds | Prevents validation leakage inside fitness CV; preserves minority representation in inner training folds | not specified in paper |
+| SMOTE timing on B | Applied after PSO feature selection on the selected training subset | Balancing the full training feature matrix before PSO would leak synthetic information into feature selection and inflate dimensionality; aligns with Pipeline B train-only policy | not specified in paper |
+| Missing numeric value cleaning timing (Pipeline B) | Dropped before train/test split | Dropping rows with missing numeric values is a deterministic row-wise filtering rule that does not learn or estimate distribution statistics across rows, so applying it before split is leakage-free and preserves clean account indexing | not specified in paper |
+| L1 feature set | Reuses Pipeline A 22 PSO-selected features | Leakage ladder rung L1 specifically isolates the effect of moving SMOTE after split while holding feature selection and scaling leaky | not specified in paper |
+
 
