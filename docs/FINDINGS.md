@@ -111,3 +111,63 @@
   2. SVM results are very sensitive to the feature set (accuracy 0.9377 on our 22 PSO features, 0.7005 on Table 2's 14). Neither feature set reproduces the paper's SVM default (accuracy 0.744) with a consistent precision/recall pattern, so we cannot say which feature set the paper used.
   3. Default Isolation Forest failure explained by contamination parameter: With `contamination=0.1`, Isolation Forest flags only ~10% of samples as anomalous (predicting ~335 anomalies out of 3,065 test points). But the test set is 50.1% suspicious (1,535/3,065). Predicting only ~10% positive guarantees recall $\le 0.055$ and accuracy $\approx 0.44-0.45$. In paper Table 7, GA tuning adjusts contamination from 0.1 to 0.3, partially mitigating this under-prediction.
   4. Test set class split near-exact match: Unstratified 80/20 random split (`seed=42`) produces 1,530 benign and 1,535 suspicious, matching the paper's reported 1,544 benign and 1,521 suspicious within 14 samples without requiring artificial split manipulation.
+
+## 2026-10-04: Phase 1.6 GA hyperparameter tuning (Pipeline A)
+
+- **What:** Implemented Genetic Algorithm hyperparameter optimization (`src/ga.py`) using DEAP `eaSimple` semantics (pop 50, 20 generations, stratified 3-fold CV on train split). Ran budget probes on all 3 models. Ran full GA for XGBoost (`results/phase1_6_ga_xgboost_20261004_034834.json`, logbook CSV `results/phase1_6_ga_xgboost_20261004_034834_logbook.csv`), Isolation Forest (`results/phase1_6_ga_isolation_forest_20261004_035452.json`, logbook CSV `results/phase1_6_ga_isolation_forest_20261004_035452_logbook.csv`), and SVM (`results/phase1_6_ga_svm_20261004_042747.json`, logbook CSV `results/phase1_6_ga_svm_20261004_042747_logbook.csv`).
+- **Why:** Replicate GA-based hyperparameter optimization per paper Section 4.3, Algorithm 2, and Tables 4-7, and evaluate the resulting tuned models on the test set.
+- **Number:**
+  - Budget Probe Measurements (pop=4, gen=1):
+    - XGBoost: 4 evals, elapsed 1.18s, 0.2941 s/eval; est. 1000 evals: 294.1s (4.90 min); est. ~600 evals: 176.5s (2.94 min). Under 30 min: True.
+    - Isolation Forest: 7 evals, elapsed 3.51s, 0.5010 s/eval; est. 1000 evals: 501.0s (8.35 min); est. ~600 evals: 300.6s (5.01 min). Under 30 min: True.
+    - SVM: 7 evals, elapsed 13.99s, 1.9979 s/eval; est. 1000 evals: 1997.9s (33.30 min); est. ~600 evals: 1198.7s (19.98 min). 1000 evals exceeds 30 min threshold.
+  - Paper Table 4 N_evals reference:
+    - N_evals per generation: Gen 0: 50, Gen 1: 33, Gen 2: 30, Gen 3: 32, Gen 4: 32, Gen 5: 29, Gen 6: 23, Gen 7: 24, Gen 8: 20, Gen 9: 34, Gen 10: 28, Gen 11: 21, Gen 12: 31, Gen 13: 38, Gen 14: 28, Gen 15: 27, Gen 16: 25, Gen 17: 25, Gen 18: 33, Gen 19: 22, Gen 20: 31.
+    - Total evaluations in Table 4: Exactly **616**.
+  - XGBoost GA Optimization:
+    - Best CV accuracy: 0.99551 (generation 12).
+    - Total evaluations: 663 across 20 generations (vs Table 4's 616).
+    - Tuned Hyperparameters: `n_estimators: 249` (paper Table 5: 79; default: 100), `gamma: 0.0` (paper: 0.28; default: 0.0), `min_child_weight: 1.0` (paper: 1.94; default: 1), `colsample_bytree: 0.5687` (paper: 0.58; default: 1.0), `max_depth: 9` (paper: 5; default: 6), `reg_lambda: 6.7872` (paper: 0.77; default: 1.0), `learning_rate: 0.8608` (paper: 0.55; default: 0.3).
+    - Search bounds check: `gamma: 0.0` sits on lower bound 0.0, `min_child_weight: 1.0` sits on lower bound 1.0; other parameters strictly interior.
+    - Test Set Evaluation (scalar metrics):
+      - Accuracy: 0.99706 (paper Table 9: 0.992, $\Delta = +0.0051$; Phase 1.5 default: 0.99674, $\Delta = +0.00033$).
+      - Precision: 1.00000 (paper Table 9: 0.992, $\Delta = +0.0080$; Phase 1.5 default: 0.99935, $\Delta = +0.00065$). Note: paper reported precision/recall mathematically track the benign class per Phase 1.3 finding.
+      - Recall: 0.99414 (paper Table 9: 0.993, $\Delta = +0.0011$; Phase 1.5 default: 0.99414, $\Delta = 0.0$).
+      - F1-Score: 0.99706 (paper Table 9: 0.992, $\Delta = +0.0051$; Phase 1.5 default: 0.99673, $\Delta = +0.00033$).
+      - ROC-AUC: 0.99994 (paper Table 9: 0.99, $\Delta = +0.0099$; Phase 1.5 default: 0.99995).
+      - MAE: 0.00294 (paper Table 9: 0.01, $\Delta = -0.0071$; Phase 1.5 default: 0.00326).
+  - SVM GA Optimization:
+    - Best CV accuracy: 0.98613 (generation 0).
+    - CV fitness range across generations: Gen 0 avg is 0.93908 (min 0.82731, max 0.98613); generational averages range from 0.93439 to 0.96953; max is 0.98613 throughout.
+    - Total evaluations: 629 across 20 generations (vs Table 4's 616).
+    - Runtime: GA optimization took 1366.34s (22.77 minutes); test evaluation took 0.72s.
+    - Tuned Hyperparameters: `C: 49.9175` (paper Table 6: 10.92; default: 0.1), `gamma: 5.9705` (paper Table 6: 13.262; default: 0.1).
+    - Search bounds check: $C \in [0.01, 100]$ (log10 gene $1.698 \in [-2, 2]$), $\gamma \in [0.001, 20]$ (log10 gene $0.776 \in [-3, 1.30103]$). Neither parameter sits on a search-space bound.
+    - Test Set Evaluation (scalar metrics):
+      - Accuracy: 0.98825 (paper Table 9: 0.87, $\Delta = +0.1183$; Phase 1.5 default: 0.93768, $\Delta = +0.05057$).
+      - Precision: 0.98700 (paper Table 9: 0.869, $\Delta = +0.1180$; Phase 1.5 default: 0.92748, $\Delta = +0.05952$). Note: paper reported precision/recall mathematically track the benign class per Phase 1.3 finding.
+      - Recall: 0.98958 (paper Table 9: 0.872, $\Delta = +0.1176$; Phase 1.5 default: 0.94984, $\Delta = +0.03974$).
+      - F1-Score: 0.98829 (paper Table 9: 0.87, $\Delta = +0.1183$; Phase 1.5 default: 0.93853, $\Delta = +0.04976$).
+      - ROC-AUC: 0.99800 (paper Table 9: 0.86, $\Delta = +0.1380$; Phase 1.5 default: 0.96978, $\Delta = +0.02821$).
+      - MAE: 0.01175 (paper Table 9: 0.13, $\Delta = -0.1183$; Phase 1.5 default: 0.06232, $\Delta = -0.05057$).
+  - Isolation Forest GA Optimization:
+    - Best CV accuracy: 0.49474 (generation 2).
+    - Total evaluations: 637 across 20 generations (vs Table 4's 616).
+    - Tuned Hyperparameters: `contamination: 0.01` (paper Table 7: 0.3; default: 0.1), `max_samples: 64` (paper Table 7: 1000; default: 256), `n_estimators: 300` (paper Table 7: 89; default: 100).
+    - Search bounds check: All three parameters sit on search-space bounds: `contamination` is on lower bound 0.01, `max_samples` is on lower bound 64, and `n_estimators` is on upper bound 300.
+    - Test Set Evaluation (scalar metrics):
+      - Accuracy: 0.48972 (paper Table 9: 0.824, $\Delta = -0.3343$; Phase 1.5 default: 0.43948, $\Delta = +0.05024$).
+      - Precision: 0.14634 (paper Table 9: 0.824, $\Delta = -0.6777$; Phase 1.5 default: 0.22687, $\Delta = -0.08052$). Note: paper reported precision/recall mathematically track the benign class per Phase 1.3 finding.
+      - Recall: 0.00391 (paper Table 9: 0.827, $\Delta = -0.8231$; Phase 1.5 default: 0.04951, $\Delta = -0.04560$).
+      - F1-Score: 0.00760 (paper Table 9: 0.825, $\Delta = -0.8174$; Phase 1.5 default: 0.08128, $\Delta = -0.07367$).
+      - ROC-AUC: 0.22893 (paper Table 9: 0.79, $\Delta = -0.5611$; Phase 1.5 default: 0.18689, $\Delta = +0.04204$).
+      - MAE: 0.51028 (paper Table 9: 0.18, $\Delta = +0.3303$; Phase 1.5 default: 0.56052, $\Delta = -0.05024$).
+    - Runtime: GA optimization took 364.74s (6.08 minutes); test evaluation took 0.25s.
+  - Consistency checks: All passed across all three runs (`accuracy_recomputed_matches_reported`, `test_counts_match_expected`).
+- **Surprise:**
+  1. Section 3 Item 10 confirmed: DEAP eaSimple evaluation count per generation is 20-42, totaling 663 evals for XGBoost, 637 for IF, and 629 for SVM. This is consistent with eaSimple (which re-evaluates only changed individuals, no caching), and closely matches Table 4's sum of 616 evaluations (ranging from 20 to 38 per generation), rather than evaluating all 1,000 individuals ($50 \times 20$).
+  2. Section 3 Item 7 confirmed (Fitness scale discrepancy): Table 4 shows GA fitness values ranging from avg 0.878 (min 0.853, max 0.8997) at generation 0 to avg 0.918 (min 0.9162, max 0.9183) at generation 20. Table 4's fitness scale matches neither our XGBoost (0.980-0.9955) nor our Isolation Forest (0.246-0.4947) CV accuracy. State plainly: Table 4's fitness scale (0.878 -> 0.918) also does not resemble SVM's fitness scale (generational avg 0.939 -> 0.970, best CV 0.9861). None of the three models replicate Table 4's fitness progression.
+  3. Section 3 Item 9 confirmed (Isolation Forest objective mismatch & boundary pinning): Because Isolation Forest fits unsupervised without labels, tuning it to maximize supervised accuracy on balanced SMOTE data pushes all three parameters to the search-space bounds: `contamination` pinned to the minimum bound 0.01, `max_samples` pinned to 64, and `n_estimators` pinned to 300. Because the anomaly score ranking is inverted (ROC-AUC 0.23, ranking benign accounts as more anomalous than suspicious accounts), the optimal accuracy strategy is to "flag nobody" (predicting class 0 for ~99% of samples, achieving ~49% accuracy). The anomaly-to-suspicious mapping stays unchanged in Phase 1 (to be investigated in Phase 3.5).
+  4. XGBoost GA gain is one test sample and sits within noise: While XGBoost test accuracy moves from 0.9967 to 0.9971, this improvement represents exactly one fewer misclassified test sample (from 10 errors [1 FP + 9 FN] in default down to 9 errors [0 FP + 9 FN] in GA, out of 3,065 test accounts). This gain of a single sample sits well within random noise.
+
+
